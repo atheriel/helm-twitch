@@ -1,4 +1,35 @@
-;;; helm-twitch --- Navigate twitch.tv via Helm
+;;; helm-twitch.el --- Navigate Twitch.tv via `helm'.
+
+;; Copyright (C) 2015 Aaron Jacobs
+
+;; Author: Aaron Jacobs <atheriel@gmail.com>
+;; URL: https://github.com/atheriel/helm-twitch
+;; Keywords: helm
+;; Version: 0
+;; Package-Requires: ((dash "2.11.0") (helm "1.5") (emacs "24"))
+
+;; This file is NOT part of GNU Emacs.
+
+;; This file is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation; either version 3, or (at your option)
+;; any later version.
+
+;; This file is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with GNU Emacs; see the file COPYING.  If not, write to
+;; the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+;; Boston, MA 02110-1301, USA.
+
+;;; Commentary:
+
+;; To use, just call M-x helm-twitch.
+
+;;; Code:
 
 (require 'url)
 (require 'dash)
@@ -184,3 +215,9 @@ This function does not perform error checking."
 		     "*helm-twitch*"))
 
 (provide 'helm-twitch)
+
+;; Local Variables:
+;; coding: utf-8
+;; End:
+
+;;; helm-twitch.el ends here
