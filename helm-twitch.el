@@ -176,6 +176,7 @@ This function does not perform error checking."
 
 (defun helm-twitch-open-chat (channel-name)
   "Invokes `erc' to open Twitch chat for a given CHANNEL-NAME."
+  (interactive "sChannel: ")
   (if (and helm-twitch-username helm-twitch-oauth-token)
       (progn
 	(erc :server "irc.twitch.tv" :port 6667
