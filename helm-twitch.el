@@ -77,6 +77,18 @@
   :version 0.1
   :type 'string)
 
+(defcustom helm-twitch-username nil
+  "A Twitch.tv username, for connecting to Twitch chat."
+  :group 'helm-twitch
+  :type 'string)
+
+(defcustom helm-twitch-oauth-token nil
+  "The OAuth token for the Twitch.tv username in `helm-twitch-username'.
+
+To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
+  :group 'helm-twitch
+  :type 'string)
+
 (defun twitch--plist-to-url-params (plist)
   "Turn a property list into an HTML parameter string."
   (mapconcat (lambda (entry)
@@ -162,6 +174,19 @@ This function does not perform error checking."
       (goto-char url-http-end-of-headers)
       (json-read))))
 
+(defun helm-twitch-open-chat (channel-name)
+  "Invokes `erc' to open Twitch chat for a given CHANNEL-NAME."
+  (if (and helm-twitch-username helm-twitch-oauth-token)
+      (progn
+	(erc :server "irc.twitch.tv" :port 6667
+	     :nick (downcase helm-twitch-username)
+	     :password helm-twitch-oauth-token)
+	(erc-join-channel (format "#%s" (downcase channel-name))))
+    (when (not helm-twitch-username)
+      (message "Set the variable `helm-twitch-username' to connect to Twitch chat."))
+    (when (not helm-twitch-oauth-token)
+      (message "Set the variable `helm-twitch-oauth-token' to connect to Twitch chat."))))
+
 (defvar helm-source-twitch
   '((name . "Live Streams")
     (volatile)
@@ -173,6 +198,10 @@ This function does not perform error checking."
     (action . (("Open this stream"
 		. (lambda (stream)
 		    (browse-url (alist-get '(url) (alist-get '(channel) stream)))))
+	       ("Open Twitch chat for this channel"
+		. (lambda (stream)
+		    (helm-twitch-open-chat
+		     (alist-get '(name) (alist-get '(channel) stream)))))
 	       )))
   "A `helm' source for Twitch streams.")
 
@@ -189,6 +218,9 @@ This function does not perform error checking."
 		 (twitch-search-channels helm-pattern))))
     (action . (("Open this channel"
 		. (lambda (stream) (browse-url (alist-get '(url) stream))))
+	       ("Open Twitch chat for this channel"
+		. (lambda (channel)
+		    (helm-twitch-open-chat (alist-get '(name) channel))))
 	       )))
   "A `helm' source for Twitch channels.")
 
