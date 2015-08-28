@@ -154,7 +154,7 @@ This function does not perform error checking."
 	 )
     ;; Add the client ID as a header (if the user has specified one).
     (and twitch-api-client-id
-	 (add-to-list url-request-extra-headers
+	 (add-to-list 'url-request-extra-headers
 		      '("Client-ID" . twitch-api-client-id) t))
     (kill-new api-url) 			; For debugging.
     (with-current-buffer
