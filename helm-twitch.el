@@ -72,11 +72,6 @@
   :version 0.1
   :type 'string)
 
-(defcustom twitch-api-client-id nil
-  ""
-  :version 0.1
-  :type 'string)
-
 (defcustom helm-twitch-username nil
   "A Twitch.tv username, for connecting to Twitch chat."
   :group 'helm-twitch
@@ -164,10 +159,6 @@ This function does not perform error checking."
 	 (url-request-extra-headers
 	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
 	 )
-    ;; Add the client ID as a header (if the user has specified one).
-    (and twitch-api-client-id
-	 (add-to-list 'url-request-extra-headers
-		      '("Client-ID" . twitch-api-client-id) t))
     (kill-new api-url) 			; For debugging.
     (with-current-buffer
 	(url-retrieve-synchronously api-url)
