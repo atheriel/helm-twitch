@@ -1,28 +1,37 @@
-# helm-twitch --- Navigate Twitch.tv via Helm
+# helm-twitch.el
 
 In the spirit of doing as much as possible inside Emacs, this package provides a
 means of checking whether your favourite [Twitch.tv](http://www.twitch.tv/)
 streamer is online, using the [Helm](https://emacs-helm.github.io/helm/)
 framework. It's as simple as `M-x helm-twitch`.
 
+You can open live streams in the browser, or join the streamer's Twitch chat
+directly in Emacs through `erc`. In the future, this package will hopefully have
+support for opening streams with [Livestreamer](http://docs.livestreamer.io/),
+for those of us who want to avoid Flash.
+
 ## Customizing
 
-`helm-twitch` has very few customization parameters. If you have a Twitch API
-client ID (which is optional, unless you're worried about rate limiting), you
-can tell the package to use it with
-
-```emacs-lisp
-(setq twitch-api-client-id "my-id-string")
-```
-
-The only other parameter at the moment is `twitch-game-type`, which allows you
-to narrow the stream results you see to a single game. For example:
+`helm-twitch` has very few customization parameters. The most immediately useful
+one is `twitch-game-type`, which you can use to narrow the stream results to a
+particular game. For example:
 
 ```emacs-lisp
 (setq twitch-game-type "League of Legends")
 ```
 
-`helm-twitch` also defines a few fonts, which are modelled after the Zenburn
+If you would like to connect to Twitch chat directly in Emacs, you will need to
+set the `helm-twitch-username` and `helm-twitch-oauth-token` variables. For
+example:
+
+```emacs-lisp
+(setq helm-twitch-username "[REDACTED]"
+	  helm-twitch-oauth-token "oauth:8lgmfrplmxw65qkjml5lg41z36u9ga")
+```
+
+You can get an OAUTH token for this purpose [here](http://twitchapps.com/tmi/).
+
+`helm-twitch` also defines a few faces, which are modelled after the Zenburn
 colours by default. You can change them by modifying
 
 * `helm-twitch-streamer-face`,

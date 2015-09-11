@@ -85,7 +85,7 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   :type 'string)
 
 (defun twitch--plist-to-url-params (plist)
-  "Turn a property list into an HTML parameter string."
+  "Turn property list PLIST into an HTML parameter string."
   (mapconcat (lambda (entry)
 	       (concat (url-hexify-string
 			(nth 1 (split-string (format "%s" (nth 0 entry)) ":")))
@@ -139,7 +139,7 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 	     (twitch-api "search/channels" :query search-term :limit 10)))
 
 (defun helm-twitch-website-search (search-term)
-  "Returns a formatted `helm' candidate for searching twitch.tv directly."
+  "Format SEARCH-TERM as a `helm' candidate for searching Twitch.tv directly."
   (list (cons (concat (propertize "[?]" 'face 'helm-twitch-prefix-face)
 		      (format " search for `%s' in a browser" search-term))
 	search-term)))
@@ -147,7 +147,7 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 (defun twitch-api (endpoint &rest plist)
   "Query the Twitch API at ENDPOINT, returning the results as a Lisp structure.
 
-API parameters can be passed as a property list. For example:
+Twitch API parameters can be passed in the property list PLIST.  For example:
 
     (twitch-api \"search/channels\" :query \"flame\" :limit 15)
 
@@ -200,7 +200,7 @@ This function does not perform error checking."
 (defvar helm-source-twitch-channels
   '((name . "Channels")
     (volatile)
-    ;; The twitch.tv API seems to require at least three characters for channel
+    ;; The Twitch.tv API seems to require at least three characters for channel
     ;; searches.
     (requires-pattern . 3)
     (candidates-process
@@ -217,13 +217,13 @@ This function does not perform error checking."
   "A `helm' source for Twitch channels.")
 
 (defvar helm-source-twitch-website
-  '((name . "Search twitch.tv directly")
+  '((name . "Search Twitch.tv directly")
     (volatile)
     ;; Require two letters (the smallest number there may be no results for),
     ;; so that it does not need to show up in the initial buffer.
     (requires-pattern . 2)
     (candidates-process . (lambda () (helm-twitch-website-search helm-pattern)))
-    (action . (("Open the twitch.tv website with this search term"
+    (action . (("Open the Twitch.tv website with this search term"
 		. (lambda (query)
 		    (browse-url (concat "http://www.twitch.tv/search?query="
 					query))))
@@ -231,7 +231,7 @@ This function does not perform error checking."
   "A `helm' source for searching Twitch's website directly.")
 
 (defun helm-twitch ()
-  "Search for live Twitch streams with `helm'."
+  "Search for live Twitch.tv streams with `helm'."
   (interactive)
   (helm-other-buffer '(helm-source-twitch
 		       helm-source-twitch-channels
