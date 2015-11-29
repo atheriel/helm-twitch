@@ -32,11 +32,20 @@
 (defvar-local livestreamer-process nil
   "The Livestreamer process for a `livestreamer-mode' buffer.")
 
+(defun livestreamer-kill-buffer ()
+  "Safely interrupt running stream players under Livestreamer
+before killing the buffer."
+  (interactive)
+  (when (eq major-mode 'livestreamer-mode)
+    (if (equal 'run (process-status livestreamer-process))
+	(interrupt-process livestreamer-process)
+      (kill-buffer))))
+
 (defvar livestreamer-mode-map
   (let ((map (make-sparse-keymap)))
     (prog1 map
       (suppress-keymap map)
-      (define-key map "q" 'quit-window)
+      (define-key map "q" 'livestreamer-kill-buffer)
       (define-key map "n" 'next-line)
       (define-key map "p" 'previous-line)))
   "Keymap for `livestreamer-mode'.")
