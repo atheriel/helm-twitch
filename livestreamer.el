@@ -68,6 +68,20 @@ the buffer."
 	  (goto-char (point-max))
 	  (insert output))))))
 
+(defun livestreamer--sentinel (proc event)
+  "Respond when Livestreamer process PROC receives EVENT."
+  (let ((buff (process-buffer proc)))
+    (when (not (null buff))
+      (with-current-buffer buff
+	(let ((inhibit-read-only t))
+	  (goto-char (point-max))
+	  (if (equal event "finished\n")
+	      (insert (propertize "# Finished. Hit 'q' to kill the buffer."
+				  'face 'font-lock-comment-face))
+	    (insert (propertize (format "# Livestreamer process had event: %s"
+					event)
+				'face 'font-lock-comment-face))))))))
+
 (defun livestreamer-open (url &optional size opts)
   "Opens the stream at URL using the Livestreamer program."
   (let* ((cmd  (executable-find "livestreamer"))
@@ -86,7 +100,8 @@ the buffer."
 				'face 'font-lock-comment-face))
 	    (let ((proc (start-process-shell-command cmd buff cmd)))
 	      (setq livestreamer-process proc)
-	      (set-process-filter proc 'livestreamer--filter))
+	      (set-process-filter proc 'livestreamer--filter)
+	      (set-process-sentinel proc 'livestreamer--sentinel))
 	  nil))
       (message "Could not locate the livestreamer program."))))
 
