@@ -98,14 +98,11 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   (let* ((viewers (format "%6s" (alist-get '(viewers) stream)))
 	 (name    (format "%-20s" (alist-get '(name)
 					     (alist-get '(channel) stream))))
-	 (raw-status (format "%s" (alist-get '(status)
-					     (alist-get '(channel) stream))))
-	 (status (if (> (length raw-status) 37)
-		     ;; Truncate the status if it's too long.
-		     (format "%s..."
-			     (substring raw-status 0 (min (length raw-status) 36)))
-		   raw-status))
-	 )
+	 (raw-status (alist-get '(status) (alist-get '(channel) stream)))
+	 (status (truncate-string-to-width
+		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
+		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
+		  37)))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat viewers " viewers")
