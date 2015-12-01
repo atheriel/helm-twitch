@@ -167,6 +167,7 @@ This function does not perform error checking."
   (interactive "sChannel: ")
   (if (and helm-twitch-username helm-twitch-oauth-token)
       (progn
+	(require 'erc)
 	(erc :server "irc.twitch.tv" :port 6667
 	     :nick (downcase helm-twitch-username)
 	     :password helm-twitch-oauth-token)
