@@ -36,6 +36,8 @@
 (require 'json)
 (require 'helm)
 
+(require 'livestreamer)
+
 (defun alist-get (symbols alist)
   "Look up the value for the chain of SYMBOLS in ALIST."
   (if symbols
@@ -185,9 +187,12 @@ This function does not perform error checking."
 	 ;; Format the list of returned streams.
 	 (mapcar (lambda (stream) (cons (twitch-format-stream stream) stream))
 		 (twitch-search-streams helm-pattern))))
-    (action . (("Open this stream"
+    (action . (("Open this stream in a browser"
 		. (lambda (stream)
 		    (browse-url (alist-get '(url) (alist-get '(channel) stream)))))
+	       ("Open this stream in Livestreamer"
+		. (lambda (stream)
+		    (livestreamer-open (alist-get '(url) (alist-get '(channel) stream)))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (stream)
 		    (helm-twitch-open-chat
