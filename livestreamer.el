@@ -32,6 +32,12 @@
 (defvar-local livestreamer-process nil
   "The Livestreamer process for a `livestreamer-mode' buffer.")
 
+(defvar-local livestreamer-url nil
+  "The current stream URL for a `livestreamer-mode' buffer.")
+
+(defvar-local livestreamer-current-size nil
+  "The current stream size for a `livestreamer-mode' buffer.")
+
 (defun livestreamer-kill-buffer ()
   "Safely interrupt running stream players under Livestreamer
 before killing the buffer."
@@ -41,11 +47,28 @@ before killing the buffer."
 	(interrupt-process livestreamer-process)
       (kill-buffer))))
 
+(defun livestreamer-reopen-stream ()
+  "Re-open the previous stream for this buffer using
+Livestreamer."
+  (interactive)
+  (when (eq major-mode 'livestreamer-mode)
+    (let ((inhibit-read-only t))
+      (goto-char (point-max))
+      (if (equal 'run (process-status livestreamer-process))
+	  ;; Don't try and re-open if the stream ain't closed!
+	  (insert (propertize
+		   "# Cannot re-open stream: a stream is still open.\n"
+		   'face 'font-lock-comment-face))
+	(insert (propertize "# Re-opening stream...\n"
+			    'face 'font-lock-comment-face))
+	(livestreamer-open livestreamer-url nil nil 'no-erase)))))
+
 (defvar livestreamer-mode-map
   (let ((map (make-sparse-keymap)))
     (prog1 map
       (suppress-keymap map)
       (define-key map "q" 'livestreamer-kill-buffer)
+      (define-key map "r" 'livestreamer-reopen-stream)
       (define-key map "n" 'next-line)
       (define-key map "p" 'previous-line)))
   "Keymap for `livestreamer-mode'.")
@@ -76,13 +99,15 @@ the buffer."
 	(let ((inhibit-read-only t))
 	  (goto-char (point-max))
 	  (if (equal event "finished\n")
-	      (insert (propertize "# Finished. Hit 'q' to kill the buffer."
-				  'face 'font-lock-comment-face))
-	    (insert (propertize (format "# Livestreamer process had event: %s"
+	      (insert
+	       (propertize
+		"# Finished. Hit 'q' to kill the buffer or 'r' to re-open.\n"
+		'face 'font-lock-comment-face))
+	    (insert (propertize (format "# Livestreamer process had event: %s\n"
 					event)
 				'face 'font-lock-comment-face))))))))
 
-(defun livestreamer-open (url &optional size opts)
+(defun livestreamer-open (url &optional size opts no-erase)
   "Opens the stream at URL using the Livestreamer program."
   (let* ((cmd  (executable-find "livestreamer"))
 	 (size (or size livestreamer-size))
@@ -95,11 +120,14 @@ the buffer."
 	  (unless (eq major-mode 'livestreamer-mode)
 	    (livestreamer-mode))
 	  (let ((inhibit-read-only t))
-	    (erase-buffer)
-	    (insert (propertize (format "# Livestreamer: %s\n" url)
-				'face 'font-lock-comment-face))
+	    (when (not no-erase)
+	      (erase-buffer)
+	      (insert (propertize (format "# Livestreamer: %s\n" url)
+				  'face 'font-lock-comment-face)))
 	    (let ((proc (start-process-shell-command cmd buff cmd)))
-	      (setq livestreamer-process proc)
+	      (setq livestreamer-process proc
+		    livestreamer-url url
+		    livestreamer-current-size size)
 	      (set-process-filter proc 'livestreamer--filter)
 	      (set-process-sentinel proc 'livestreamer--sentinel))
 	  nil))
