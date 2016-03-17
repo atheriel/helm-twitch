@@ -92,6 +92,10 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   "A Twitch.tv stream."
   name viewers status game url)
 
+(cl-defstruct (twitch-channel (:constructor twitch-channel--create))
+  "A Twitch.tv channel."
+  name followers game url)
+
 (defun helm-twitch--format-stream (stream)
   "Given a `twitch-stream' STREAM, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
@@ -110,10 +114,11 @@ suitable for display in a *helm-twitch* buffer."
 	    (propertize status 'face 'helm-twitch-status-face))))
 
 (defun helm-twitch--format-channel (channel)
-  "Given a CHANNEL, return a a formatted string suitable for display."
-  (let* ((followers (format "%7d" (plist-get channel ':followers)))
-	 (name      (format "%-16s" (plist-get channel ':name)))
-	 (game      (format "%s" (or (plist-get channel ':game) ""))))
+  "Given a `twitch-channel' CHANNEL, return a a formatted string
+suitable for display in a *helm-twitch* buffer."
+  (let* ((followers (format "%7d" (twitch-channel-followers channel)))
+	 (name      (format "%-16s" (twitch-channel-name channel)))
+	 (game      (format "%s" (or (twitch-channel-game channel) ""))))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat followers " followers")
@@ -138,8 +143,14 @@ suitable for display in a *helm-twitch* buffer."
 
 (defun twitch-search-channels (search-term)
   "Retrieve a list of Twitch channels that match the SEARCH-TERM."
-  (plist-get (twitch-api "search/channels" :query search-term :limit 10)
-	     ':channels))
+  (let ((results (twitch-api "search/channels"
+			     :query search-term :limit 10)))
+    (cl-loop for channel across (plist-get results ':channels) collect
+	     (twitch-channel--create
+	      :name      (plist-get channel ':name)
+	      :followers (plist-get channel ':followers)
+	      :game      (plist-get channel ':game)
+	      :url       (plist-get channel ':url)))))
 
 (defun helm-twitch-website-search (search-term)
   "Format SEARCH-TERM as a `helm' candidate for searching Twitch.tv directly."
@@ -228,10 +239,10 @@ For example:
 	 (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
 		 (twitch-search-channels helm-pattern))))
     (action . (("Open this channel"
-		. (lambda (stream) (browse-url (plist-get stream ':url))))
+		. (lambda (channel) (browse-url (twitch-channel-url channel))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (channel)
-		    (helm-twitch-open-chat (plist-get channel ':name))))
+		    (helm-twitch-open-chat (twitch-channel-name channel))))
 	       )))
   "A `helm' source for Twitch channels.")
 
