@@ -88,7 +88,7 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 		       (url-hexify-string (format "%s" (nth 1 entry)))))
 	     (-partition 2 plist) "&"))
 
-(defun twitch-format-stream (stream)
+(defun helm-twitch--format-stream (stream)
   "Given a STREAM, return a a formatted string suitable for display."
   (let* ((viewers (format "%6s" (plist-get stream ':viewers)))
 	 (name    (format "%-20s" (plist-get (plist-get stream ':channel) ':name)))
@@ -104,7 +104,7 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 	    "  "
 	    (propertize status 'face 'helm-twitch-status-face))))
 
-(defun twitch-format-channel (channel)
+(defun helm-twitch--format-channel (channel)
   "Given a CHANNEL, return a a formatted string suitable for display."
   (let* ((followers (format "%6s" (plist-get channel ':followers)))
 	 (name      (format "%-20s" (plist-get channel ':name)))
@@ -190,7 +190,7 @@ For example:
     (candidates-process
      . (lambda ()
 	 ;; Format the list of returned streams.
-	 (mapcar (lambda (stream) (cons (twitch-format-stream stream) stream))
+	 (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
 		 (twitch-search-streams helm-pattern))))
     (action . (("Open this stream in a browser"
 		. (lambda (stream)
@@ -214,7 +214,7 @@ For example:
     (candidates-process
      . (lambda ()
 	 ;; Format the list of returned channels.
-	 (mapcar (lambda (channel) (cons (twitch-format-channel channel) channel))
+	 (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
 		 (twitch-search-channels helm-pattern))))
     (action . (("Open this channel"
 		. (lambda (stream) (browse-url (plist-get stream ':url))))
