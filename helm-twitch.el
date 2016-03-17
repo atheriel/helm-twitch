@@ -88,11 +88,16 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 		       (url-hexify-string (format "%s" (nth 1 entry)))))
 	     (-partition 2 plist) "&"))
 
+(cl-defstruct (twitch-stream (:constructor twitch-stream--create))
+  "A Twitch.tv stream."
+  name viewers status game url)
+
 (defun helm-twitch--format-stream (stream)
-  "Given a STREAM, return a a formatted string suitable for display."
-  (let* ((viewers (format "%6s" (plist-get stream ':viewers)))
-	 (name    (format "%-20s" (plist-get (plist-get stream ':channel) ':name)))
-	 (raw-status (plist-get (plist-get stream ':channel) ':status))
+  "Given a `twitch-stream' STREAM, return a a formatted string
+suitable for display in a *helm-twitch* buffer."
+  (let* ((viewers (format "%6s" (twitch-stream-viewers stream)))
+	 (name    (format "%-20s" (twitch-stream-name stream)))
+	 (raw-status (twitch-stream-status stream))
 	 (status (truncate-string-to-width
 		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
 		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
@@ -122,7 +127,14 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 		     (twitch-api "streams" :query search-term :limit 10
 				 :game twitch-game-type)
 		   (twitch-api "streams" :query search-term :limit 10))))
-    (plist-get results ':streams)))
+    (cl-loop for stream across (plist-get results ':streams) collect
+	     (let ((channel (plist-get stream ':channel)))
+	       (twitch-stream--create
+		:name    (plist-get channel ':name)
+		:viewers (plist-get stream ':viewers)
+		:status  (plist-get channel ':status)
+		:game    (plist-get channel ':game)
+		:url     (plist-get channel ':url))))))
 
 (defun twitch-search-channels (search-term)
   "Retrieve a list of Twitch channels that match the SEARCH-TERM."
@@ -194,14 +206,13 @@ For example:
 		 (twitch-search-streams helm-pattern))))
     (action . (("Open this stream in a browser"
 		. (lambda (stream)
-		    (browse-url (plist-get (plist-get stream ':channel) ':url))))
+		    (browse-url (twitch-stream-url stream))))
 	       ("Open this stream in Livestreamer"
 		. (lambda (stream)
-		    (livestreamer-open (plist-get (plist-get 'stream ':channel) ':url))))
+		    (livestreamer-open (twitch-stream-url stream))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (stream)
-		    (helm-twitch-open-chat
-		     (plist-get (plist-get stream ':channel) ':name))))
+		    (helm-twitch-open-chat (twitch-stream-name stream))))
 	       )))
   "A `helm' source for Twitch streams.")
 
