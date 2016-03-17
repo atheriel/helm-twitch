@@ -62,24 +62,24 @@
   "Face used to prefix new file or url paths in `helm-find-files'."
   :group 'helm-twitch)
 
-(defcustom twitch-game-type "League of Legends"
+(defcustom twitch-api-game-filter "League of Legends"
   "If specified, limits the search to those streaming this game."
   :version 0.1
   :type 'string)
 
-(defcustom helm-twitch-username nil
+(defcustom twitch-api-username nil
   "A Twitch.tv username, for connecting to Twitch chat."
   :group 'helm-twitch
   :type 'string)
 
-(defcustom helm-twitch-oauth-token nil
-  "The OAuth token for the Twitch.tv username in `helm-twitch-username'.
+(defcustom twitch-api-oauth-token nil
+  "The OAuth token for the Twitch.tv username in `twitch-api-username'.
 
 To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   :group 'helm-twitch
   :type 'string)
 
-(defun twitch--plist-to-url-params (plist)
+(defun twitch-api--plist-to-url-params (plist)
   "Turn property list PLIST into an HTML parameter string."
   (mapconcat (lambda (entry)
 	       (concat (url-hexify-string
@@ -88,20 +88,20 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 		       (url-hexify-string (format "%s" (nth 1 entry)))))
 	     (-partition 2 plist) "&"))
 
-(cl-defstruct (twitch-stream (:constructor twitch-stream--create))
+(cl-defstruct (twitch-api-stream (:constructor twitch-api-stream--create))
   "A Twitch.tv stream."
   name viewers status game url)
 
-(cl-defstruct (twitch-channel (:constructor twitch-channel--create))
+(cl-defstruct (twitch-api-channel (:constructor twitch-api-channel--create))
   "A Twitch.tv channel."
   name followers game url)
 
 (defun helm-twitch--format-stream (stream)
-  "Given a `twitch-stream' STREAM, return a a formatted string
+  "Given a `twitch-api-stream' STREAM, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
-  (let* ((viewers (format "%7d" (twitch-stream-viewers stream)))
-	 (name    (format "%-16s" (twitch-stream-name stream)))
-	 (raw-status (twitch-stream-status stream))
+  (let* ((viewers (format "%7d" (twitch-api-stream-viewers stream)))
+	 (name    (format "%-16s" (twitch-api-stream-name stream)))
+	 (raw-status (twitch-api-stream-status stream))
 	 (status (truncate-string-to-width
 		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
 		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
@@ -114,11 +114,11 @@ suitable for display in a *helm-twitch* buffer."
 	    (propertize status 'face 'helm-twitch-status-face))))
 
 (defun helm-twitch--format-channel (channel)
-  "Given a `twitch-channel' CHANNEL, return a a formatted string
+  "Given a `twitch-api-channel' CHANNEL, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
-  (let* ((followers (format "%7d" (twitch-channel-followers channel)))
-	 (name      (format "%-16s" (twitch-channel-name channel)))
-	 (game      (format "%s" (or (twitch-channel-game channel) ""))))
+  (let* ((followers (format "%7d" (twitch-api-channel-followers channel)))
+	 (name      (format "%-16s" (twitch-api-channel-name channel)))
+	 (game      (format "%s" (or (twitch-api-channel-game channel) ""))))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat followers " followers")
@@ -126,27 +126,27 @@ suitable for display in a *helm-twitch* buffer."
 	    "  "
 	    (propertize game 'face 'helm-twitch-status-face))))
 
-(defun twitch-search-streams (search-term)
+(defun twitch-api-search-streams (search-term)
   "Retrieve a list of Twitch streams that match the SEARCH-TERM."
-  (let ((results (if twitch-game-type
+  (let ((results (if twitch-api-game-filter
 		     (twitch-api "streams" :query search-term :limit 10
-				 :game twitch-game-type)
+				 :game twitch-api-game-filter)
 		   (twitch-api "streams" :query search-term :limit 10))))
     (cl-loop for stream across (plist-get results ':streams) collect
 	     (let ((channel (plist-get stream ':channel)))
-	       (twitch-stream--create
+	       (twitch-api-stream--create
 		:name    (plist-get channel ':name)
 		:viewers (plist-get stream ':viewers)
 		:status  (plist-get channel ':status)
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
-(defun twitch-search-channels (search-term)
+(defun twitch-api-search-channels (search-term)
   "Retrieve a list of Twitch channels that match the SEARCH-TERM."
   (let ((results (twitch-api "search/channels"
 			     :query search-term :limit 10)))
     (cl-loop for channel across (plist-get results ':channels) collect
-	     (twitch-channel--create
+	     (twitch-api-channel--create
 	      :name      (plist-get channel ':name)
 	      :followers (plist-get channel ':followers)
 	      :game      (plist-get channel ':game)
@@ -168,7 +168,7 @@ For example:
     (twitch-api \"search/channels\" :query \"flame\" :limit 15)
 "
   (let* (;; TODO: Investigate using `url-request-data' instead.
-	 (params (twitch--plist-to-url-params plist))
+	 (params (twitch-api--plist-to-url-params plist))
 	 (api-url (concat "https://api.twitch.tv/kraken/" endpoint "?" params))
 	 ;; Decode into a plist, not the default alist.
 	 (json-object-type 'plist)
@@ -192,20 +192,20 @@ For example:
 				(concat " - " (plist-get result ':message))))))
 	result))))
 
-(defun helm-twitch-open-chat (channel-name)
+(defun twitch-api-open-chat (channel-name)
   "Invokes `erc' to open Twitch chat for a given CHANNEL-NAME."
   (interactive "sChannel: ")
-  (if (and helm-twitch-username helm-twitch-oauth-token)
+  (if (and twitch-api-username twitch-api-oauth-token)
       (progn
 	(require 'erc)
 	(erc :server "irc.twitch.tv" :port 6667
-	     :nick (downcase helm-twitch-username)
-	     :password helm-twitch-oauth-token)
+	     :nick (downcase twitch-api-username)
+	     :password twitch-api-oauth-token)
 	(erc-join-channel (format "#%s" (downcase channel-name))))
-    (when (not helm-twitch-username)
-      (message "Set the variable `helm-twitch-username' to connect to Twitch chat."))
-    (when (not helm-twitch-oauth-token)
-      (message "Set the variable `helm-twitch-oauth-token' to connect to Twitch chat."))))
+    (when (not twitch-api-username)
+      (message "Set the variable `twitch-api-username' to connect to Twitch chat."))
+    (when (not twitch-api-oauth-token)
+      (message "Set the variable `twitch-api-oauth-token' to connect to Twitch chat."))))
 
 (defvar helm-source-twitch
   '((name . "Live Streams")
@@ -214,16 +214,16 @@ For example:
      . (lambda ()
 	 ;; Format the list of returned streams.
 	 (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
-		 (twitch-search-streams helm-pattern))))
+		 (twitch-api-search-streams helm-pattern))))
     (action . (("Open this stream in a browser"
 		. (lambda (stream)
-		    (browse-url (twitch-stream-url stream))))
+		    (browse-url (twitch-api-stream-url stream))))
 	       ("Open this stream in Livestreamer"
 		. (lambda (stream)
-		    (livestreamer-open (twitch-stream-url stream))))
+		    (livestreamer-open (twitch-api-stream-url stream))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (stream)
-		    (helm-twitch-open-chat (twitch-stream-name stream))))
+		    (twitch-api-open-chat (twitch-api-stream-name stream))))
 	       )))
   "A `helm' source for Twitch streams.")
 
@@ -237,12 +237,12 @@ For example:
      . (lambda ()
 	 ;; Format the list of returned channels.
 	 (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
-		 (twitch-search-channels helm-pattern))))
+		 (twitch-api-search-channels helm-pattern))))
     (action . (("Open this channel"
-		. (lambda (channel) (browse-url (twitch-channel-url channel))))
+		. (lambda (channel) (browse-url (twitch-api-channel-url channel))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (channel)
-		    (helm-twitch-open-chat (twitch-channel-name channel))))
+		    (twitch-api-open-chat (twitch-api-channel-name channel))))
 	       )))
   "A `helm' source for Twitch channels.")
 
