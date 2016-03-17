@@ -95,13 +95,13 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 (defun helm-twitch--format-stream (stream)
   "Given a `twitch-stream' STREAM, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
-  (let* ((viewers (format "%6s" (twitch-stream-viewers stream)))
-	 (name    (format "%-20s" (twitch-stream-name stream)))
+  (let* ((viewers (format "%7d" (twitch-stream-viewers stream)))
+	 (name    (format "%-16s" (twitch-stream-name stream)))
 	 (raw-status (twitch-stream-status stream))
 	 (status (truncate-string-to-width
 		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
 		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
-		  37)))
+		  45)))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat viewers " viewers")
@@ -111,9 +111,9 @@ suitable for display in a *helm-twitch* buffer."
 
 (defun helm-twitch--format-channel (channel)
   "Given a CHANNEL, return a a formatted string suitable for display."
-  (let* ((followers (format "%6s" (plist-get channel ':followers)))
-	 (name      (format "%-20s" (plist-get channel ':name)))
-	 (game      (format "%s" (plist-get channel ':game))))
+  (let* ((followers (format "%7d" (plist-get channel ':followers)))
+	 (name      (format "%-16s" (plist-get channel ':name)))
+	 (game      (format "%s" (or (plist-get channel ':game) ""))))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat followers " followers")
