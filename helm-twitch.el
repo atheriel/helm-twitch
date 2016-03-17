@@ -38,13 +38,6 @@
 
 (require 'livestreamer)
 
-(defun alist-get (symbols alist)
-  "Look up the value for the chain of SYMBOLS in ALIST."
-  (if symbols
-      (alist-get (cdr symbols)
-		 (assoc (car symbols) alist))
-    (cdr alist)))
-
 (defgroup helm-twitch nil
   "A helm plugin to search for live Twitch channels."
   :group 'convenience)
@@ -97,10 +90,9 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 
 (defun twitch-format-stream (stream)
   "Given a STREAM, return a a formatted string suitable for display."
-  (let* ((viewers (format "%6s" (alist-get '(viewers) stream)))
-	 (name    (format "%-20s" (alist-get '(name)
-					     (alist-get '(channel) stream))))
-	 (raw-status (alist-get '(status) (alist-get '(channel) stream)))
+  (let* ((viewers (format "%6s" (plist-get stream ':viewers)))
+	 (name    (format "%-20s" (plist-get (plist-get stream ':channel) ':name)))
+	 (raw-status (plist-get (plist-get stream ':channel) ':status))
 	 (status (truncate-string-to-width
 		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
 		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
@@ -114,9 +106,9 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 
 (defun twitch-format-channel (channel)
   "Given a CHANNEL, return a a formatted string suitable for display."
-  (let* ((followers (format "%6s" (alist-get '(followers) channel)))
-	 (name      (format "%-20s" (alist-get '(name) channel)))
-	 (game      (format "%s" (alist-get '(game) channel))))
+  (let* ((followers (format "%6s" (plist-get channel ':followers)))
+	 (name      (format "%-20s" (plist-get channel ':name)))
+	 (game      (format "%s" (plist-get channel ':game))))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat followers " followers")
@@ -130,12 +122,12 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 		     (twitch-api "streams" :query search-term :limit 10
 				 :game twitch-game-type)
 		   (twitch-api "streams" :query search-term :limit 10))))
-    (alist-get '(streams) results)))
+    (plist-get results ':streams)))
 
 (defun twitch-search-channels (search-term)
   "Retrieve a list of Twitch channels that match the SEARCH-TERM."
-  (alist-get '(channels)
-	     (twitch-api "search/channels" :query search-term :limit 10)))
+  (plist-get (twitch-api "search/channels" :query search-term :limit 10)
+	     ':channels))
 
 (defun helm-twitch-website-search (search-term)
   "Format SEARCH-TERM as a `helm' candidate for searching Twitch.tv directly."
@@ -144,25 +136,38 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
 	search-term)))
 
 (defun twitch-api (endpoint &rest plist)
-  "Query the Twitch API at ENDPOINT, returning the results as a Lisp structure.
+  "Query the Twitch API at ENDPOINT, returning the resulting JSON
+in a property list structure.
 
-Twitch API parameters can be passed in the property list PLIST.  For example:
+Twitch API parameters can be passed in the property list PLIST.
+For example:
 
     (twitch-api \"search/channels\" :query \"flame\" :limit 15)
-
-This function does not perform error checking."
+"
   (let* (;; TODO: Investigate using `url-request-data' instead.
 	 (params (twitch--plist-to-url-params plist))
 	 (api-url (concat "https://api.twitch.tv/kraken/" endpoint "?" params))
+	 ;; Decode into a plist, not the default alist.
+	 (json-object-type 'plist)
 	 ;; Use version 3 of the API.
 	 (url-request-extra-headers
 	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
 	 )
-    (kill-new api-url) 			; For debugging.
+    ;; (kill-new api-url) 			; For debugging.
     (with-current-buffer
-	(url-retrieve-synchronously api-url)
+      (url-retrieve-synchronously api-url t)
+      (setq coding-system 'utf-8)
       (goto-char url-http-end-of-headers)
-      (json-read))))
+      (let ((result (json-read)))
+	(when (plist-get result ':error)
+	  ;; According to the Twitch API documentation, the JSON object should
+	  ;; contain error information of this kind on failure:
+	  (user-error "Twitch.tv API request failed: %d (%s) %s"
+		      (plist-get result ':status)
+		      (plist-get result ':error)
+		      (concat (when (plist-get result ':message)
+				(concat " - " (plist-get result ':message))))))
+	result))))
 
 (defun helm-twitch-open-chat (channel-name)
   "Invokes `erc' to open Twitch chat for a given CHANNEL-NAME."
@@ -189,14 +194,14 @@ This function does not perform error checking."
 		 (twitch-search-streams helm-pattern))))
     (action . (("Open this stream in a browser"
 		. (lambda (stream)
-		    (browse-url (alist-get '(url) (alist-get '(channel) stream)))))
+		    (browse-url (plist-get (plist-get stream ':channel) ':url))))
 	       ("Open this stream in Livestreamer"
 		. (lambda (stream)
-		    (livestreamer-open (alist-get '(url) (alist-get '(channel) stream)))))
+		    (livestreamer-open (plist-get (plist-get 'stream ':channel) ':url))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (stream)
 		    (helm-twitch-open-chat
-		     (alist-get '(name) (alist-get '(channel) stream)))))
+		     (plist-get (plist-get stream ':channel) ':name))))
 	       )))
   "A `helm' source for Twitch streams.")
 
@@ -212,10 +217,10 @@ This function does not perform error checking."
 	 (mapcar (lambda (channel) (cons (twitch-format-channel channel) channel))
 		 (twitch-search-channels helm-pattern))))
     (action . (("Open this channel"
-		. (lambda (stream) (browse-url (alist-get '(url) stream))))
+		. (lambda (stream) (browse-url (plist-get stream ':url))))
 	       ("Open Twitch chat for this channel"
 		. (lambda (channel)
-		    (helm-twitch-open-chat (alist-get '(name) channel))))
+		    (helm-twitch-open-chat (plist-get channel ':name))))
 	       )))
   "A `helm' source for Twitch channels.")
 
