@@ -86,7 +86,8 @@ For example:
     ;; (kill-new api-url) 			; For debugging.
     (with-current-buffer
       (url-retrieve-synchronously api-url t)
-      (setq coding-system 'utf-8)
+      ;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
+      (set-buffer-multibyte t)
       (goto-char (point-min))
       (re-search-forward "^$")
       (let ((result (json-read)))

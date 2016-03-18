@@ -65,11 +65,8 @@
 suitable for display in a *helm-twitch* buffer."
   (let* ((viewers (format "%7d" (twitch-api-stream-viewers stream)))
 	 (name    (format "%-16s" (twitch-api-stream-name stream)))
-	 (raw-status (twitch-api-stream-status stream))
 	 (status (truncate-string-to-width
-		  ;; Handle the encoding issue manually: Twitch uses UTF-8.
-		  (decode-coding-string (string-make-unibyte raw-status) 'utf-8)
-		  45)))
+		  (twitch-api-stream-status stream) 45)))
     (concat (propertize name 'face 'helm-twitch-streamer-face)
 	    "  "
 	    (propertize (concat viewers " viewers")
