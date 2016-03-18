@@ -87,7 +87,8 @@ For example:
     (with-current-buffer
       (url-retrieve-synchronously api-url t)
       (setq coding-system 'utf-8)
-      (goto-char url-http-end-of-headers)
+      (goto-char (point-min))
+      (re-search-forward "^$")
       (let ((result (json-read)))
 	(when (plist-get result ':error)
 	  ;; According to the Twitch API documentation, the JSON object should
