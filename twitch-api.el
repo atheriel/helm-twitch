@@ -101,12 +101,18 @@ For example:
 				(concat " - " (plist-get result ':message))))))
 	result))))
 
-(defun twitch-api-search-streams (search-term)
-  "Retrieve a list of Twitch streams that match the SEARCH-TERM."
-  (let ((results (if twitch-api-game-filter
-		     (twitch-api "streams" :query search-term :limit 10
-				 :game twitch-api-game-filter)
-		   (twitch-api "streams" :query search-term :limit 10))))
+(defun twitch-api-search-streams (search-term &optional limit)
+  "Retrieve a list of Twitch streams that match the SEARCH-TERM.
+
+If LIMIT is an integer, pass that along to `twitch-api'."
+  (let* ((opts (if (integerp limit) '(:limit limit)))
+	 (opts (if twitch-api-game-filter
+		   (append '(:game twitch-api-game-filter) opts)
+		 opts))
+	 (opts (append `(:query ,search-term) opts))
+	 ;; That was really just a way of building up a plist of options to
+	 ;; pass to `twitch-api'...
+	 (results (eval `,@(append '(twitch-api "streams") opts))))
     (cl-loop for stream across (plist-get results ':streams) collect
 	     (let ((channel (plist-get stream ':channel)))
 	       (twitch-api-stream--create
@@ -116,10 +122,13 @@ For example:
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
-(defun twitch-api-search-channels (search-term)
-  "Retrieve a list of Twitch channels that match the SEARCH-TERM."
-  (let ((results (twitch-api "search/channels"
-			     :query search-term :limit 10)))
+(defun twitch-api-search-channels (search-term &optional limit)
+  "Retrieve a list of Twitch channels that match the SEARCH-TERM.
+
+If LIMIT is an integer, pass that along to `twitch-api'."
+  (let* ((opts (if (integerp limit) '(:limit limit)))
+	 (opts (append `(:query ,search-term) opts))
+	 (results (eval `,@(append '(twitch-api "search/channels") opts))))
     (cl-loop for channel across (plist-get results ':channels) collect
 	     (twitch-api-channel--create
 	      :name      (plist-get channel ':name)

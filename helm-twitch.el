@@ -40,6 +40,15 @@
   "A helm plugin to search for live Twitch channels."
   :group 'convenience)
 
+(defcustom helm-twitch-candidate-number-limit 25
+  "The limit on the number of candidates `helm-twitch' will
+return from a single source. Note that there are significant
+performance costs to increasing this beyond 100 or so.
+
+Similar to `helm-candidate-number-limit'."
+  :group 'helm-twitch
+  :type 'string)
+
 (defface helm-twitch-prefix-face
     '((t (:inherit 'helm-ff-prefix)))
   "Face used to prefix the search query in `helm-twitch'."
@@ -100,7 +109,8 @@ suitable for display in a *helm-twitch* buffer."
      . (lambda ()
 	 ;; Format the list of returned streams.
 	 (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
-		 (twitch-api-search-streams helm-pattern))))
+		 (twitch-api-search-streams helm-pattern
+					    helm-twitch-candidate-number-limit))))
     (action . (("Open this stream in a browser"
 		. (lambda (stream)
 		    (browse-url (twitch-api-stream-url stream))))
@@ -123,7 +133,8 @@ suitable for display in a *helm-twitch* buffer."
      . (lambda ()
 	 ;; Format the list of returned channels.
 	 (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
-		 (twitch-api-search-channels helm-pattern))))
+		 (twitch-api-search-channels helm-pattern
+					     helm-twitch-candidate-number-limit))))
     (action . (("Open this channel"
 		. (lambda (channel) (browse-url (twitch-api-channel-url channel))))
 	       ("Open Twitch chat for this channel"
