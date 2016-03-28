@@ -42,6 +42,15 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   :group 'helm-twitch
   :type 'string)
 
+(defcustom twitch-api-client-id nil
+  "The Client ID for the application.
+
+This is not strictly necessary, but if you are making a large
+number of requests to the Twitch.tv API you may want to register
+for one. See `https://github.com/justintv/Twitch-API'."
+  :group 'helm-twitch
+  :type 'string)
+
 ;;;; Utilities
 
 (defun twitch-api--plist-to-url-params (plist)
@@ -82,6 +91,11 @@ For example:
 	 ;; Use version 3 of the API.
 	 (url-request-extra-headers
 	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
+	 (url-request-extra-headers
+	  ;; Add the Client ID (if present).
+	  (append (when twitch-api-client-id
+		    `(("Client-ID" . ,twitch-api-client-id)))
+		  url-request-extra-headers))
 	 )
     ;; (kill-new api-url) 			; For debugging.
     (with-current-buffer
