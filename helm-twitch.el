@@ -54,19 +54,19 @@ Similar to `helm-candidate-number-limit'."
   "Face used to prefix the search query in `helm-twitch'."
   :group 'helm-twitch)
 
-(defface helm-twitch-streamer-face
-    '((t (:background "#3F3F3F" :foreground "#8CD0D3")))
-  "Face used to prefix new file or url paths in `helm-find-files'."
+(defface helm-twitch-channel-face
+    '((t (:inherit font-lock-keyword-face :weight normal)))
+  "Face used for streamer/channel names in `helm-twitch'."
   :group 'helm-twitch)
 
 (defface helm-twitch-viewers-face
-    '((t (:background "#3F3F3F" :foreground "#F0DFAF")))
-  "Face used to prefix new file or url paths in `helm-find-files'."
+    '((t (:inherit font-lock-string-face)))
+  "Face used for viewer/follower count in `helm-twitch'."
   :group 'helm-twitch)
 
 (defface helm-twitch-status-face
-    '((t (:background "#3F3F3F" :foreground "#7F9F7F")))
-  "Face used to prefix new file or url paths in `helm-find-files'."
+    '((t (:inherit font-lock-comment-face)))
+  "Face used for a stream's status in `helm-twitch'."
   :group 'helm-twitch)
 
 (defun helm-twitch--format-stream (stream)
@@ -76,7 +76,7 @@ suitable for display in a *helm-twitch* buffer."
 	 (name    (format "%-16s" (twitch-api-stream-name stream)))
 	 (status (truncate-string-to-width
 		  (twitch-api-stream-status stream) 45)))
-    (concat (propertize name 'face 'helm-twitch-streamer-face)
+    (concat (propertize name 'face 'helm-twitch-channel-face)
 	    "  "
 	    (propertize (concat viewers " viewers")
 			'face 'helm-twitch-viewers-face)
@@ -89,7 +89,7 @@ suitable for display in a *helm-twitch* buffer."
   (let* ((followers (format "%7d" (twitch-api-channel-followers channel)))
 	 (name      (format "%-16s" (twitch-api-channel-name channel)))
 	 (game      (format "%s" (or (twitch-api-channel-game channel) ""))))
-    (concat (propertize name 'face 'helm-twitch-streamer-face)
+    (concat (propertize name 'face 'helm-twitch-channel-face)
 	    "  "
 	    (propertize (concat followers " followers")
 			'face 'helm-twitch-viewers-face)
