@@ -63,12 +63,40 @@ Livestreamer."
 			    'face 'font-lock-comment-face))
 	(livestreamer-open livestreamer-url nil nil 'no-erase)))))
 
+(defun livestreamer--get-stream-sizes ()
+  "Retrieve the available stream sizes from the buffer's process
+output content."
+  (save-excursion
+    (with-current-buffer "*livestreamer*"
+      (goto-char (point-min))
+      (let* ((start (progn
+		      (re-search-forward "Available streams:\s")
+		      (point)))
+	     (end (progn (re-search-forward "$") (point))))
+	(split-string
+	 (s-replace " (worst)" ""
+		    (s-replace " (best)" ""
+			       (buffer-substring start end))) ", ")))))
+
+(defun livestreamer-resize-stream (size)
+  "Re-open the stream with a different size."
+  (interactive
+   (list (intern (completing-read
+		  "Size: "
+		  (livestreamer--get-stream-sizes) nil t))))
+  (when (eq major-mode 'livestreamer-mode)
+    (unless (and (equal 'run (process-status livestreamer-process))
+		 (not (y-or-n-p "Stream is currently open. Close it? ")))
+      (interrupt-process livestreamer-process)
+      (livestreamer-open livestreamer-url size nil 'no-erase))))
+
 (defvar livestreamer-mode-map
   (let ((map (make-sparse-keymap)))
     (prog1 map
       (suppress-keymap map)
       (define-key map "q" 'livestreamer-kill-buffer)
       (define-key map "r" 'livestreamer-reopen-stream)
+      (define-key map "s" 'livestreamer-resize-stream)
       (define-key map "n" 'next-line)
       (define-key map "p" 'previous-line)))
   "Keymap for `livestreamer-mode'.")
