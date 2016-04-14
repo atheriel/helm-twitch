@@ -101,10 +101,10 @@ output content."
 		  "Size: "
 		  (livestreamer--get-stream-sizes) nil t))))
   (when (eq major-mode 'livestreamer-mode)
-    (unless (and (equal 'run (process-status livestreamer-process))
-		 (not (y-or-n-p "Stream is currently open. Close it? ")))
-      (interrupt-process livestreamer-process)
-      (livestreamer-open livestreamer-url size nil 'no-erase))))
+    (when (and (equal 'run (process-status livestreamer-process))
+	       (y-or-n-p "Stream is currently open. Close it? "))
+      (interrupt-process livestreamer-process))
+    (livestreamer-open livestreamer-url size nil 'no-erase)))
 
 (defvar livestreamer-mode-map
   (let ((map (make-sparse-keymap)))
