@@ -25,6 +25,9 @@
 (require 'dash)
 (require 'json)
 
+(defconst twitch-api-version "0.1"
+  "Version of this package to advertise in the User-Agent string.")
+
 (defcustom twitch-api-game-filter "League of Legends"
   "If specified, limits the search to those streaming this game."
   :version 0.1
@@ -88,6 +91,10 @@ For example:
 	 (api-url (concat "https://api.twitch.tv/kraken/" endpoint "?" params))
 	 ;; Decode into a plist, not the default alist.
 	 (json-object-type 'plist)
+	 ;; Use a descriptive User-Agent.
+	 (url-user-agent
+	  (format "User-Agent: twitch-api/%s URL/%s Emacs/%s\r\n"
+		  twitch-api-version url-version emacs-version))
 	 ;; Use version 3 of the API.
 	 (url-request-extra-headers
 	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
