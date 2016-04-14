@@ -29,6 +29,10 @@
   "Additional options to pass to Livestreamer."
   :type 'string)
 
+(defcustom livestreamer-header-fn #'livestreamer-default-header
+  "The function used to set the header-line."
+  :type 'function)
+
 (defvar-local livestreamer-process nil
   "The Livestreamer process for a `livestreamer-mode' buffer.")
 
@@ -37,6 +41,14 @@
 
 (defvar-local livestreamer-current-size nil
   "The current stream size for a `livestreamer-mode' buffer.")
+
+(defun livestreamer-default-header ()
+  "Provides the default header for `livestreamer-mode'."
+  (concat
+   (propertize "Livestreamer:" 'face 'font-lock-variable-name-face) " "
+   (propertize livestreamer-url 'face 'font-lock-constant-face) " "
+   (propertize (concat "(" livestreamer-current-size ")")
+	       'face 'font-lock-string-face)))
 
 (defun livestreamer-kill-buffer ()
   "Safely interrupt running stream players under Livestreamer
@@ -155,7 +167,9 @@ the buffer."
 	    (let ((proc (start-process-shell-command cmd buff cmd)))
 	      (setq livestreamer-process proc
 		    livestreamer-url url
-		    livestreamer-current-size size)
+		    livestreamer-current-size size
+		    header-line-format
+		    '(:eval (funcall livestreamer-header-fn)))
 	      (set-process-filter proc 'livestreamer--filter)
 	      (set-process-sentinel proc 'livestreamer--sentinel))
 	  nil))
