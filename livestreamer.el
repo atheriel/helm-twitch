@@ -75,9 +75,8 @@ Livestreamer."
 	  (insert (propertize
 		   "# Cannot re-open stream: a stream is still open.\n"
 		   'face 'font-lock-comment-face))
-	(insert (propertize "# Re-opening stream...\n"
-			    'face 'font-lock-comment-face))
-	(livestreamer-open livestreamer-url nil nil 'no-erase)))))
+	(livestreamer-open livestreamer-url nil nil 'no-erase
+			   "# Re-opening stream...\n")))))
 
 (defun livestreamer--get-stream-sizes ()
   "Retrieve the available stream sizes from the buffer's process
@@ -151,13 +150,14 @@ the buffer."
 					event)
 				'face 'font-lock-comment-face))))))))
 
-(defun livestreamer-open (url &optional size opts no-erase)
+(defun livestreamer-open (url &optional size opts no-erase msg)
   "Opens the stream at URL using the Livestreamer program."
   (let* ((cmd  (executable-find "livestreamer"))
 	 (size (or size livestreamer-size))
 	 (opts (or opts livestreamer-opts ""))
 	 (cmd  (when cmd (format "%s %s %s %s" cmd opts url size)))
-	 (buff (when cmd (get-buffer-create "*livestreamer*"))))
+	 (buff (when cmd (get-buffer-create "*livestreamer*")))
+	 (msg  (or msg "# Opening stream...\n")))
     (if cmd
 	(with-current-buffer buff
 	  (switch-to-buffer buff)
@@ -165,9 +165,8 @@ the buffer."
 	    (livestreamer-mode))
 	  (let ((inhibit-read-only t))
 	    (when (not no-erase)
-	      (erase-buffer)
-	      (insert (propertize (format "# Livestreamer: %s\n" url)
-				  'face 'font-lock-comment-face)))
+	      (erase-buffer))
+	    (insert (propertize msg 'face 'font-lock-comment-face))
 	    (let ((proc (start-process-shell-command cmd buff cmd)))
 	      (setq livestreamer-process proc
 		    livestreamer-url url
