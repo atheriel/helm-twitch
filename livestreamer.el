@@ -33,6 +33,10 @@
   "The function used to set the header-line."
   :type 'function)
 
+(defcustom livestreamer-header-fn-args nil
+  "Arguments to pass `livestreamer-header-fn'."
+  :type 'list)
+
 (defvar-local livestreamer-process nil
   "The Livestreamer process for a `livestreamer-mode' buffer.")
 
@@ -169,7 +173,8 @@ the buffer."
 		    livestreamer-url url
 		    livestreamer-current-size size
 		    header-line-format
-		    '(:eval (funcall livestreamer-header-fn)))
+		    `(:eval (funcall ',livestreamer-header-fn
+				     ,@livestreamer-header-fn-args)))
 	      (set-process-filter proc 'livestreamer--filter)
 	      (set-process-sentinel proc 'livestreamer--sentinel))
 	  nil))
