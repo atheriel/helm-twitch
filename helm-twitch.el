@@ -69,6 +69,29 @@ Similar to `helm-candidate-number-limit'."
   "Face used for a stream's status in `helm-twitch'."
   :group 'helm-twitch)
 
+(defun helm-twitch--livestreamer-header (stream)
+  "Provides a Twitch.tv header for `livestreamer-mode'."
+  (concat
+   (propertize "Twitch.tv:" 'face 'font-lock-variable-name-face)
+   " "
+   (propertize (twitch-api-stream-name stream)
+               'face 'helm-twitch-channel-face)
+   " "
+   (propertize (concat "(size: " livestreamer-current-size ")")
+               'face 'font-lock-string-face)
+   " -- "
+   (propertize (format "%d viewers" (twitch-api-stream-viewers stream))
+               'face 'helm-twitch-viewers-face)
+   " -- "
+   (propertize (twitch-api-stream-status stream)
+               'face 'helm-twitch-status-face)))
+
+(defun helm-twitch--livestreamer-open (stream)
+  "Opens a Twitch.tv stream in `livestreamer-mode'."
+  (let ((livestreamer-header-fn #'helm-twitch--livestreamer-header)
+        (livestreamer-header-fn-args (list stream)))
+    (livestreamer-open (twitch-api-stream-url stream))))
+
 (defun helm-twitch--format-stream (stream)
   "Given a `twitch-api-stream' STREAM, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
@@ -112,11 +135,10 @@ suitable for display in a *helm-twitch* buffer."
 		 (twitch-api-search-streams helm-pattern
 					    helm-twitch-candidate-number-limit))))
     (action . (("Open this stream in a browser"
-		. (lambda (stream)
-		    (browse-url (twitch-api-stream-url stream))))
-	       ("Open this stream in Livestreamer"
-		. (lambda (stream)
-		    (livestreamer-open (twitch-api-stream-url stream))))
+                . (lambda (stream)
+                    (browse-url (twitch-api-stream-url stream))))
+               ("Open this stream in Livestreamer"
+                . helm-twitch--livestreamer-open)
 	       ("Open Twitch chat for this channel"
 		. (lambda (stream)
 		    (twitch-api-open-chat (twitch-api-stream-name stream))))
