@@ -96,44 +96,44 @@ Similar to `helm-candidate-number-limit'."
   "Given a `twitch-api-stream' STREAM, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
   (let* ((viewers (format "%7d" (twitch-api-stream-viewers stream)))
-	 (name    (format "%-16s" (twitch-api-stream-name stream)))
-	 (status (truncate-string-to-width
-		  (twitch-api-stream-status stream) 45)))
+         (name    (format "%-16s" (twitch-api-stream-name stream)))
+         (status (truncate-string-to-width
+                  (twitch-api-stream-status stream) 45)))
     (concat (propertize name 'face 'helm-twitch-channel-face)
-	    "  "
-	    (propertize (concat viewers " viewers")
-			'face 'helm-twitch-viewers-face)
-	    "  "
-	    (propertize status 'face 'helm-twitch-status-face))))
+            "  "
+            (propertize (concat viewers " viewers")
+                        'face 'helm-twitch-viewers-face)
+            "  "
+            (propertize status 'face 'helm-twitch-status-face))))
 
 (defun helm-twitch--format-channel (channel)
   "Given a `twitch-api-channel' CHANNEL, return a a formatted string
 suitable for display in a *helm-twitch* buffer."
   (let* ((followers (format "%7d" (twitch-api-channel-followers channel)))
-	 (name      (format "%-16s" (twitch-api-channel-name channel)))
-	 (game      (format "%s" (or (twitch-api-channel-game channel) ""))))
+         (name      (format "%-16s" (twitch-api-channel-name channel)))
+         (game      (format "%s" (or (twitch-api-channel-game channel) ""))))
     (concat (propertize name 'face 'helm-twitch-channel-face)
-	    "  "
-	    (propertize (concat followers " followers")
-			'face 'helm-twitch-viewers-face)
-	    "  "
-	    (propertize game 'face 'helm-twitch-status-face))))
+            "  "
+            (propertize (concat followers " followers")
+                        'face 'helm-twitch-viewers-face)
+            "  "
+            (propertize game 'face 'helm-twitch-status-face))))
 
 (defun helm-twitch-website-search (search-term)
   "Format SEARCH-TERM as a `helm' candidate for searching Twitch.tv directly."
   (list (cons (concat (propertize "[?]" 'face 'helm-twitch-prefix-face)
-		      (format " search for `%s' in a browser" search-term))
-	search-term)))
+                      (format " search for `%s' in a browser" search-term))
+        search-term)))
 
 (defvar helm-source-twitch
   '((name . "Live Streams")
     (volatile)
     (candidates-process
      . (lambda ()
-	 ;; Format the list of returned streams.
-	 (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
-		 (twitch-api-search-streams helm-pattern
-					    helm-twitch-candidate-number-limit))))
+         ;; Format the list of returned streams.
+         (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
+                 (twitch-api-search-streams helm-pattern
+                                            helm-twitch-candidate-number-limit))))
     (action . (("Open this stream in a browser"
                 . (lambda (stream)
                     (browse-url (twitch-api-stream-url stream))))

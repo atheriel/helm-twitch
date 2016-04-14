@@ -52,7 +52,7 @@
    (propertize "Livestreamer:" 'face 'font-lock-variable-name-face) " "
    (propertize livestreamer-url 'face 'font-lock-constant-face) " "
    (propertize (concat "(" livestreamer-current-size ")")
-	       'face 'font-lock-string-face)))
+               'face 'font-lock-string-face)))
 
 (defun livestreamer-kill-buffer ()
   "Safely interrupt running stream players under Livestreamer
@@ -60,7 +60,7 @@ before killing the buffer."
   (interactive)
   (when (eq major-mode 'livestreamer-mode)
     (if (equal 'run (process-status livestreamer-process))
-	(interrupt-process livestreamer-process)
+        (interrupt-process livestreamer-process)
       (kill-buffer))))
 
 (defun livestreamer-reopen-stream ()
@@ -71,12 +71,12 @@ Livestreamer."
     (let ((inhibit-read-only t))
       (goto-char (point-max))
       (if (equal 'run (process-status livestreamer-process))
-	  ;; Don't try and re-open if the stream ain't closed!
-	  (insert (propertize
-		   "# Cannot re-open stream: a stream is still open.\n"
-		   'face 'font-lock-comment-face))
-	(livestreamer-open livestreamer-url nil nil 'no-erase
-			   "# Re-opening stream...\n")))))
+          ;; Don't try and re-open if the stream ain't closed!
+          (insert (propertize
+                   "# Cannot re-open stream: a stream is still open.\n"
+                   'face 'font-lock-comment-face))
+        (livestreamer-open livestreamer-url nil nil 'no-erase
+                           "# Re-opening stream...\n")))))
 
 (defun livestreamer--get-stream-sizes ()
   "Retrieve the available stream sizes from the buffer's process
@@ -85,23 +85,23 @@ output content."
     (with-current-buffer "*livestreamer*"
       (goto-char (point-min))
       (let* ((start (progn
-		      (re-search-forward "Available streams:\s")
-		      (point)))
-	     (end (progn (re-search-forward "$") (point))))
-	(split-string
-	 (s-replace " (worst)" ""
-		    (s-replace " (best)" ""
-			       (buffer-substring start end))) ", ")))))
+                      (re-search-forward "Available streams:\s")
+                      (point)))
+             (end (progn (re-search-forward "$") (point))))
+        (split-string
+         (s-replace " (worst)" ""
+                    (s-replace " (best)" ""
+                               (buffer-substring start end))) ", ")))))
 
 (defun livestreamer-resize-stream (size)
   "Re-open the stream with a different size."
   (interactive
    (list (intern (completing-read
-		  "Size: "
-		  (livestreamer--get-stream-sizes) nil t))))
+                  "Size: "
+                  (livestreamer--get-stream-sizes) nil t))))
   (when (eq major-mode 'livestreamer-mode)
     (when (and (equal 'run (process-status livestreamer-process))
-	       (y-or-n-p "Stream is currently open. Close it? "))
+               (y-or-n-p "Stream is currently open. Close it? "))
       (interrupt-process livestreamer-process))
     (livestreamer-open livestreamer-url size nil 'no-erase)))
 
@@ -130,53 +130,53 @@ the buffer."
   (let ((buff (process-buffer proc)))
     (when (not (null buff))
       (with-current-buffer buff
-	(let ((inhibit-read-only t))
-	  (goto-char (point-max))
-	  (insert output))))))
+        (let ((inhibit-read-only t))
+          (goto-char (point-max))
+          (insert output))))))
 
 (defun livestreamer--sentinel (proc event)
   "Respond when Livestreamer process PROC receives EVENT."
   (let ((buff (process-buffer proc)))
     (when (not (null buff))
       (with-current-buffer buff
-	(let ((inhibit-read-only t))
-	  (goto-char (point-max))
-	  (if (equal event "finished\n")
-	      (insert
-	       (propertize
-		"# Finished. Hit 'q' to kill the buffer or 'r' to re-open.\n"
-		'face 'font-lock-comment-face))
-	    (insert (propertize (format "# Livestreamer process had event: %s\n"
-					event)
-				'face 'font-lock-comment-face))))))))
+        (let ((inhibit-read-only t))
+          (goto-char (point-max))
+          (if (equal event "finished\n")
+              (insert
+               (propertize
+                "# Finished. Hit 'q' to kill the buffer or 'r' to re-open.\n"
+                'face 'font-lock-comment-face))
+            (insert (propertize (format "# Livestreamer process had event: %s\n"
+                                        event)
+                                'face 'font-lock-comment-face))))))))
 
 (defun livestreamer-open (url &optional size opts no-erase msg)
   "Opens the stream at URL using the Livestreamer program."
   (let* ((cmd  (executable-find "livestreamer"))
-	 (size (or size livestreamer-size))
-	 (opts (or opts livestreamer-opts ""))
-	 (cmd  (when cmd (format "%s %s %s %s" cmd opts url size)))
-	 (buff (when cmd (get-buffer-create "*livestreamer*")))
-	 (msg  (or msg "# Opening stream...\n")))
+         (size (or size livestreamer-size))
+         (opts (or opts livestreamer-opts ""))
+         (cmd  (when cmd (format "%s %s %s %s" cmd opts url size)))
+         (buff (when cmd (get-buffer-create "*livestreamer*")))
+         (msg  (or msg "# Opening stream...\n")))
     (if cmd
-	(with-current-buffer buff
-	  (switch-to-buffer buff)
-	  (unless (eq major-mode 'livestreamer-mode)
-	    (livestreamer-mode))
-	  (let ((inhibit-read-only t))
-	    (when (not no-erase)
-	      (erase-buffer))
-	    (insert (propertize msg 'face 'font-lock-comment-face))
-	    (let ((proc (start-process-shell-command cmd buff cmd)))
-	      (setq livestreamer-process proc
-		    livestreamer-url url
-		    livestreamer-current-size size
-		    header-line-format
-		    `(:eval (funcall ',livestreamer-header-fn
-				     ,@livestreamer-header-fn-args)))
-	      (set-process-filter proc 'livestreamer--filter)
-	      (set-process-sentinel proc 'livestreamer--sentinel))
-	  nil))
+        (with-current-buffer buff
+          (switch-to-buffer buff)
+          (unless (eq major-mode 'livestreamer-mode)
+            (livestreamer-mode))
+          (let ((inhibit-read-only t))
+            (when (not no-erase)
+              (erase-buffer))
+            (insert (propertize msg 'face 'font-lock-comment-face))
+            (let ((proc (start-process-shell-command cmd buff cmd)))
+              (setq livestreamer-process proc
+                    livestreamer-url url
+                    livestreamer-current-size size
+                    header-line-format
+                    `(:eval (funcall ',livestreamer-header-fn
+                                     ,@livestreamer-header-fn-args)))
+              (set-process-filter proc 'livestreamer--filter)
+              (set-process-sentinel proc 'livestreamer--sentinel))
+          nil))
       (message "Could not locate the livestreamer program."))))
 
 (provide 'livestreamer)
