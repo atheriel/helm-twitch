@@ -119,64 +119,68 @@ suitable for display in a *helm-twitch* buffer."
             "  "
             (propertize game 'face 'helm-twitch-status-face))))
 
-(defun helm-twitch-website-search (search-term)
-  "Format SEARCH-TERM as a `helm' candidate for searching Twitch.tv directly."
+(defun helm-twitch--stream-candidates ()
+  "Retrieve and format a list of stream that match whatever is
+bound to HELM-PATTERN."
+  (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
+	  (twitch-api-search-streams helm-pattern
+				     helm-twitch-candidate-number-limit)))
+
+(defun helm-twitch--channel-candidates ()
+  "Retrieve and format a list of channels that match whatever is
+bound to HELM-PATTERN."
+  (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
+	  (twitch-api-search-channels helm-pattern
+				      helm-twitch-candidate-number-limit)))
+
+(defun helm-twitch--website-candidates ()
+  "Format whatever is bound to HELM-PATTERN as a `helm' candidate
+for searching Twitch.tv directly."
   (list (cons (concat (propertize "[?]" 'face 'helm-twitch-prefix-face)
-                      (format " search for `%s' in a browser" search-term))
-        search-term)))
+                      (format " search for `%s' in a browser" helm-pattern))
+        helm-pattern)))
 
 (defvar helm-source-twitch
-  '((name . "Live Streams")
-    (volatile)
-    (candidates-process
-     . (lambda ()
-         ;; Format the list of returned streams.
-         (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
-                 (twitch-api-search-streams helm-pattern
-                                            helm-twitch-candidate-number-limit))))
-    (action . (("Open this stream in a browser"
-                . (lambda (stream)
-                    (browse-url (twitch-api-stream-url stream))))
-               ("Open this stream in Livestreamer"
-                . helm-twitch--livestreamer-open)
-	       ("Open Twitch chat for this channel"
-		. (lambda (stream)
-		    (twitch-api-open-chat (twitch-api-stream-name stream))))
-	       )))
+  (helm-build-sync-source "Live Streams"
+    :volatile t
+    :candidates #'helm-twitch--stream-candidates
+    :action (helm-make-actions
+	     "Open this stream in a browser"
+	     (lambda (stream) (browse-url (twitch-api-stream-url stream)))
+             "Open this stream in Livestreamer"
+	     'helm-twitch--livestreamer-open
+	     "Open Twitch chat for this channel"
+	     (lambda (stream)
+	       (twitch-api-open-chat (twitch-api-stream-name stream)))))
   "A `helm' source for Twitch streams.")
 
 (defvar helm-source-twitch-channels
-  '((name . "Channels")
-    (volatile)
+  (helm-build-sync-source "Channels"
+    :volatile t
     ;; The Twitch.tv API seems to require at least three characters for channel
     ;; searches.
-    (requires-pattern . 3)
-    (candidates-process
-     . (lambda ()
-	 ;; Format the list of returned channels.
-	 (mapcar (lambda (channel) (cons (helm-twitch--format-channel channel) channel))
-		 (twitch-api-search-channels helm-pattern
-					     helm-twitch-candidate-number-limit))))
-    (action . (("Open this channel"
-		. (lambda (channel) (browse-url (twitch-api-channel-url channel))))
-	       ("Open Twitch chat for this channel"
-		. (lambda (channel)
-		    (twitch-api-open-chat (twitch-api-channel-name channel))))
-	       )))
+    :requires-pattern 3
+    :candidates #'helm-twitch--channel-candidates
+    :action (helm-make-actions
+	     "Open this channel"
+	     (lambda (channel) (browse-url (twitch-api-channel-url channel)))
+	     "Open Twitch chat for this channel"
+	     (lambda (channel)
+	       (twitch-api-open-chat (twitch-api-channel-name channel)))))
   "A `helm' source for Twitch channels.")
 
 (defvar helm-source-twitch-website
-  '((name . "Search Twitch.tv directly")
-    (volatile)
+  (helm-build-sync-source "Search Twitch.tv directly"
+    :volatile t
     ;; Require two letters (the smallest number there may be no results for),
     ;; so that it does not need to show up in the initial buffer.
-    (requires-pattern . 2)
-    (candidates-process . (lambda () (helm-twitch-website-search helm-pattern)))
-    (action . (("Open the Twitch.tv website with this search term"
-		. (lambda (query)
-		    (browse-url (concat "http://www.twitch.tv/search?query="
-					query))))
-	       )))
+    :requires-pattern 2
+    :candidates #'helm-twitch--website-candidates
+    :action (helm-make-actions
+	     "Open the Twitch.tv website with this search term"
+	     (lambda (query)
+	       (browse-url
+		(concat "http://www.twitch.tv/search?query=" query)))))
   "A `helm' source for searching Twitch's website directly.")
 
 (defun helm-twitch ()
