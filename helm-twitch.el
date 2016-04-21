@@ -142,6 +142,8 @@ for searching Twitch.tv directly."
 
 (defvar helm-source-twitch
   (helm-build-sync-source "Live Streams"
+    :header-name (lambda (src) (format "%s [%s]" src
+				       (or twitch-api-game-filter "All Games")))
     :volatile t
     :candidates #'helm-twitch--stream-candidates
     :action (helm-make-actions
