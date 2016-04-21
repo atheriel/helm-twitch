@@ -132,20 +132,23 @@ For example:
     ;; (kill-new api-url) 			; For debugging.
     (with-current-buffer
       (url-retrieve-synchronously api-url t)
-      ;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
-      (set-buffer-multibyte t)
-      (goto-char (point-min))
-      (re-search-forward "^$")
-      (let ((result (json-read)))
-	(when (plist-get result ':error)
-	  ;; According to the Twitch API documentation, the JSON object should
-	  ;; contain error information of this kind on failure:
-	  (user-error "Twitch.tv API request failed: %d (%s) %s"
-		      (plist-get result ':status)
-		      (plist-get result ':error)
-		      (concat (when (plist-get result ':message)
-				(concat " - " (plist-get result ':message))))))
-	result))))
+      ;; The Twitch.tv API uses 204 for some successful DELETE
+      ;; requests. In those cases, we should be fine returning nil.
+      (unless (equal url-http-response-status 204)
+	;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
+	(set-buffer-multibyte t)
+	(goto-char (point-min))
+	(re-search-forward "^$")
+	(let ((result (json-read)))
+	  (when (plist-get result ':error)
+	    ;; According to the Twitch API documentation, the JSON object should
+	    ;; contain error information of this kind on failure:
+	    (let ((status (plist-get result ':status))
+		  (err    (plist-get result ':error))
+		  (errmsg (plist-get result ':message)))
+	      (user-error "Twitch.tv API request failed: %d (%s)%s"
+			  status err (when errmsg (concat " - " errmsg)))))
+	  result)))))
 
 (defun twitch-api-search-streams (search-term &optional limit)
   "Retrieve a list of Twitch streams that match the SEARCH-TERM.
