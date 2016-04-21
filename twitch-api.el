@@ -75,16 +75,35 @@ for one. See `https://github.com/justintv/Twitch-API'."
   "A Twitch.tv channel."
   name followers game url)
 
+;;;; Authentication
+
+(defun twitch-api-authenticate ()
+  "Retrieve an OAuth token for a Twitch.tv account through a
+browser."
+  (interactive)
+  (cl-assert twitch-api-client-id)
+  (browse-url
+   (concat "https://api.twitch.tv/kraken/oauth2/authorize?response_type=token"
+	   "&client_id=" twitch-api-client-id
+	   "&redirect_uri=http://localhost"
+	   "&scope=user_read+user_follows_edit+chat_login"))
+  (let ((token (read-string "OAuth Token: ")))
+    (if (equal token "")
+	(user-error "No token supplied. Aborting.")
+      (setq twitch-api-oauth-token token))))
+
 ;;;; API Wrappers
 
-(defun twitch-api (endpoint &rest plist)
+(defun twitch-api (endpoint auth &rest plist)
   "Query the Twitch API at ENDPOINT, returning the resulting JSON
-in a property list structure.
+in a property list structure. When AUTH is non-nil, include the
+OAuth token in `twitch-api-oauth-token' in the request (if it
+exists).
 
 Twitch API parameters can be passed in the property list PLIST.
 For example:
 
-    (twitch-api \"search/channels\" :query \"flame\" :limit 15)
+    (twitch-api \"search/channels\" t :query \"flame\" :limit 15)
 "
   (let* (;; TODO: Investigate using `url-request-data' instead.
 	 (params (twitch-api--plist-to-url-params plist))
@@ -98,6 +117,12 @@ For example:
 	 ;; Use version 3 of the API.
 	 (url-request-extra-headers
 	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
+	 (url-request-extra-headers
+	  ;; Add the Authorization ID (if present).
+	  (append (when (and auth twitch-api-oauth-token)
+		    `(("Authorization" . ,(format "OAuth %s"
+						 twitch-api-oauth-token))))
+		  url-request-extra-headers))
 	 (url-request-extra-headers
 	  ;; Add the Client ID (if present).
 	  (append (when twitch-api-client-id
@@ -133,7 +158,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	 (opts (append `(:query ,search-term) opts))
 	 ;; That was really just a way of building up a plist of options to
 	 ;; pass to `twitch-api'...
-	 (results (eval `,@(append '(twitch-api "streams") opts))))
+	 (results (eval `,@(append '(twitch-api "streams" nil) opts))))
     (cl-loop for stream across (plist-get results ':streams) collect
 	     (let ((channel (plist-get stream ':channel)))
 	       (twitch-api-stream--create
@@ -149,7 +174,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 If LIMIT is an integer, pass that along to `twitch-api'."
   (let* ((opts (if (integerp limit) '(:limit limit)))
 	 (opts (append `(:query ,search-term) opts))
-	 (results (eval `,@(append '(twitch-api "search/channels") opts))))
+	 (results (eval `,@(append '(twitch-api "search/channels" nil) opts))))
     (cl-loop for channel across (plist-get results ':channels) collect
 	     (twitch-api-channel--create
 	      :name      (plist-get channel ':name)
@@ -167,7 +192,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	(require 'erc)
 	(erc :server "irc.twitch.tv" :port 6667
 	     :nick (downcase twitch-api-username)
-	     :password twitch-api-oauth-token)
+	     :password (format "oauth:%s" twitch-api-oauth-token))
 	(erc-join-channel (format "#%s" (downcase channel-name))))
     (when (not twitch-api-username)
       (message "Set the variable `twitch-api-username' to connect to Twitch chat."))
