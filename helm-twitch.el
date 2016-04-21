@@ -126,6 +126,12 @@ bound to HELM-PATTERN."
 	  (twitch-api-search-streams helm-pattern
 				     helm-twitch-candidate-number-limit)))
 
+(defun helm-twitch--following-candidates ()
+  "Retrieve and format a list of followed streams."
+  (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
+	  (twitch-api-get-followed-streams
+	   helm-twitch-candidate-number-limit)))
+
 (defun helm-twitch--channel-candidates ()
   "Retrieve and format a list of channels that match whatever is
 bound to HELM-PATTERN."
@@ -155,6 +161,20 @@ for searching Twitch.tv directly."
 	     (lambda (stream)
 	       (twitch-api-open-chat (twitch-api-stream-name stream)))))
   "A `helm' source for Twitch streams.")
+
+(defvar helm-source-twitch-following
+  (helm-build-sync-source "Live Followed Streams"
+    :volatile t
+    :candidates #'helm-twitch--following-candidates
+    :action (helm-make-actions
+	     "Open this stream in a browser"
+	     (lambda (stream) (browse-url (twitch-api-stream-url stream)))
+             "Open this stream in Livestreamer"
+	     'helm-twitch--livestreamer-open
+	     "Open Twitch chat for this channel"
+	     (lambda (stream)
+	       (twitch-api-open-chat (twitch-api-stream-name stream)))))
+  "A `helm' source for Twitch streams the user is following.")
 
 (defvar helm-source-twitch-channels
   (helm-build-sync-source "Channels"
@@ -188,10 +208,14 @@ for searching Twitch.tv directly."
 (defun helm-twitch ()
   "Search for live Twitch.tv streams with `helm'."
   (interactive)
-  (helm-other-buffer '(helm-source-twitch
-		       helm-source-twitch-channels
-		       helm-source-twitch-website)
-		     "*helm-twitch*"))
+  (let* ((sources '(helm-source-twitch
+		    helm-source-twitch-channels
+		    helm-source-twitch-website))
+	 (sources (if twitch-api-oauth-token
+		      (append '(helm-source-twitch-following)
+			      sources)
+		    sources)))
+    (helm-other-buffer sources "*helm-twitch*")))
 
 (provide 'helm-twitch)
 

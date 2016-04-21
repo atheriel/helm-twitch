@@ -185,6 +185,25 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	      :game      (plist-get channel ':game)
 	      :url       (plist-get channel ':url)))))
 
+(defun twitch-api-get-followed-streams (&optional limit)
+  "Retrieve a list of Twitch streams that match the SEARCH-TERM.
+
+If LIMIT is an integer, pass that along to `twitch-api'."
+  (cl-assert twitch-api-oauth-token)
+  (let* ((opts (if (integerp limit) '(:limit limit)))
+	 (results (eval `,@(append
+			    '(twitch-api "streams/followed" t
+					 :stream_type "live")
+			    opts))))
+    (cl-loop for stream across (plist-get results ':streams) collect
+	     (let ((channel (plist-get stream ':channel)))
+	       (twitch-api-stream--create
+		:name    (plist-get channel ':name)
+		:viewers (plist-get stream ':viewers)
+		:status  (plist-get channel ':status)
+		:game    (plist-get channel ':game)
+		:url     (plist-get channel ':url))))))
+
 ;;;; Twitch Chat Interaction
 
 (defun twitch-api-open-chat (channel-name)
