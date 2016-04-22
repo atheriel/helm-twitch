@@ -49,6 +49,17 @@ Similar to `helm-candidate-number-limit'."
   :group 'helm-twitch
   :type 'string)
 
+(defcustom helm-twitch-enable-livestreamer-actions t
+  "Whether actions to use `livestreamer-mode' should be
+available."
+  :group 'helm-twitch
+  :type 'boolean)
+
+(defcustom helm-twitch-enable-chat-actions t
+  "Whether actions to open Twitch chat should be available."
+  :group 'helm-twitch
+  :type 'boolean)
+
 (defface helm-twitch-prefix-face
     '((t (:inherit 'helm-ff-prefix)))
   "Face used to prefix the search query in `helm-twitch'."
@@ -126,6 +137,23 @@ bound to HELM-PATTERN."
 	  (twitch-api-search-streams helm-pattern
 				     helm-twitch-candidate-number-limit)))
 
+(defvar helm-twitch--stream-actions nil
+  "Available `helm' actions for a stream.")
+
+(defun helm-twitch--update-stream-actions ()
+  "Updates available `helm' actions for a stream."
+  (setq helm-twitch--stream-actions
+	(append
+	 `(("Open this stream in a browser" .
+	    (lambda (stream) (browse-url (twitch-api-stream-url stream)))))
+	 (when helm-twitch-enable-livestreamer-actions
+	   `(("Open this stream in Livestreamer" .
+	      helm-twitch--livestreamer-open)))
+	 (when helm-twitch-enable-chat-actions
+	   `(("Open Twitch chat for this channel" .
+	      (lambda (stream)
+		(twitch-api-open-chat (twitch-api-stream-name stream)))))))))
+
 (defun helm-twitch--following-candidates ()
   "Retrieve and format a list of followed streams."
   (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
@@ -151,15 +179,10 @@ for searching Twitch.tv directly."
     :header-name (lambda (src) (format "%s [%s]" src
 				       (or twitch-api-game-filter "All Games")))
     :volatile t
+    :init (lambda () (helm-twitch--update-stream-actions))
     :candidates #'helm-twitch--stream-candidates
-    :action (helm-make-actions
-	     "Open this stream in a browser"
-	     (lambda (stream) (browse-url (twitch-api-stream-url stream)))
-             "Open this stream in Livestreamer"
-	     'helm-twitch--livestreamer-open
-	     "Open Twitch chat for this channel"
-	     (lambda (stream)
-	       (twitch-api-open-chat (twitch-api-stream-name stream)))))
+    :action 'helm-twitch--stream-actions
+    :persistent-help "Open this stream in a browser")
   "A `helm' source for Twitch streams.")
 
 (defvar helm-source-twitch-following
