@@ -149,6 +149,9 @@ bound to HELM-PATTERN."
 	 (when helm-twitch-enable-livestreamer-actions
 	   `(("Open this stream in Livestreamer" .
 	      helm-twitch--livestreamer-open)))
+	 (when twitch-api-oauth-token
+	   `(("Follow this stream's channel" .
+	      (lambda (stream) (twitch-api-follow stream)))))
 	 (when helm-twitch-enable-chat-actions
 	   `(("Open Twitch chat for this channel" .
 	      (lambda (stream)

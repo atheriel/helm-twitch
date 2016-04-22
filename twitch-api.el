@@ -204,6 +204,24 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
+(defun twitch-api-follow (stream &optional quiet unfollow)
+  "Adds STREAM to the following list for `twitch-api-username'.
+
+When QUIET is non-nil, suppress the notification message. When
+UNFOLLOW is non-nil, instead remove STREAM from the following
+list."
+  (cl-assert (and twitch-api-oauth-token twitch-api-username))
+  (let ((url-request-method (if unfollow "DELETE" "PUT"))
+	(stream (if (stringp stream) stream
+		  (twitch-api-stream-name stream))))
+    (twitch-api (concat "users/" twitch-api-username
+			"/follows/channels/" stream)
+		'auth)
+    (unless quiet
+      (message (if unfollow "%s is no longer following %s"
+		 "%s is now following %s")
+	       twitch-api-username stream))))
+
 ;;;; Twitch Chat Interaction
 
 (defun twitch-api-open-chat (channel-name)
