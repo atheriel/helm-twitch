@@ -60,6 +60,12 @@ available."
   :group 'helm-twitch
   :type 'boolean)
 
+(defcustom helm-twitch-max-cache-age 60
+  "Oldest permissable cache age for `helm-twitch' API calls, in
+seconds."
+  :group 'helm-twitch
+  :type 'number)
+
 (defface helm-twitch-prefix-face
     '((t (:inherit 'helm-ff-prefix)))
   "Face used to prefix the search query in `helm-twitch'."
@@ -157,11 +163,25 @@ bound to HELM-PATTERN."
 	      (lambda (stream)
 		(twitch-api-open-chat (twitch-api-stream-name stream)))))))))
 
+(defvar helm-twitch--following-cache nil)
+(defvar helm-twitch--following-cache-age nil)
+
 (defun helm-twitch--following-candidates ()
   "Retrieve and format a list of followed streams."
-  (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream) stream))
-	  (twitch-api-get-followed-streams
-	   helm-twitch-candidate-number-limit)))
+  (if (and helm-twitch--following-cache
+	   (< (float-time (time-since helm-twitch--following-cache-age))
+	      helm-twitch-max-cache-age))
+      ;; Just use the cache, if it's new enough.
+      helm-twitch--following-cache
+    ;; Otherwise we need to check again, and cache the result.
+    (let ((following
+	   (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream)
+					  stream))
+		   (twitch-api-get-followed-streams
+		    helm-twitch-candidate-number-limit))))
+      (setq helm-twitch--following-cache-age (current-time)
+	    helm-twitch--following-cache following)
+      following)))
 
 (defun helm-twitch--channel-candidates ()
   "Retrieve and format a list of channels that match whatever is
@@ -176,6 +196,12 @@ for searching Twitch.tv directly."
   (list (cons (concat (propertize "[?]" 'face 'helm-twitch-prefix-face)
                       (format " search for `%s' in a browser" helm-pattern))
         helm-pattern)))
+
+(defun helm-twitch-flush-cache ()
+  "Manually remove cached streams to force an update from the
+Twitch.tv API."
+  (setq helm-twitch--following-cache-age nil
+	helm-twitch--following-cache nil))
 
 (defvar helm-source-twitch
   (helm-build-sync-source "Live Streams"
