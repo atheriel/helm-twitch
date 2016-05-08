@@ -163,6 +163,26 @@ bound to HELM-PATTERN."
 	      (lambda (stream)
 		(twitch-api-open-chat (twitch-api-stream-name stream)))))))))
 
+(defvar helm-twitch--top-streams-cache nil)
+(defvar helm-twitch--top-streams-cache-age nil)
+
+(defun helm-twitch--top-stream-candidates ()
+  "Retrieve and format a list of top live streams."
+  (if (and helm-twitch--top-streams-cache
+	   (< (float-time (time-since helm-twitch--top-streams-cache-age))
+	      helm-twitch-max-cache-age))
+      ;; Just use the cache, if it's new enough.
+      helm-twitch--top-streams-cache
+    ;; Otherwise we need to check again, and cache the result.
+    (let ((top
+	   (mapcar (lambda (stream) (cons (helm-twitch--format-stream stream)
+					  stream))
+		   (twitch-api-search-streams
+		    "" helm-twitch-candidate-number-limit))))
+      (setq helm-twitch--top-streams-cache-age (current-time)
+	    helm-twitch--top-streams-cache top)
+      top)))
+
 (defvar helm-twitch--following-cache nil)
 (defvar helm-twitch--following-cache-age nil)
 
@@ -201,15 +221,29 @@ for searching Twitch.tv directly."
   "Manually remove cached streams to force an update from the
 Twitch.tv API."
   (setq helm-twitch--following-cache-age nil
-	helm-twitch--following-cache nil))
+	helm-twitch--following-cache nil
+	helm-twitch--top-streams-cache-age nil
+	helm-twitch--top-streams-cache nil))
 
 (defvar helm-source-twitch
   (helm-build-sync-source "Live Streams"
     :header-name (lambda (src) (format "%s [%s]" src
 				       (or twitch-api-game-filter "All Games")))
     :volatile t
+    :requires-pattern 2
     :init (lambda () (helm-twitch--update-stream-actions))
     :candidates #'helm-twitch--stream-candidates
+    :action 'helm-twitch--stream-actions
+    :persistent-help "Open this stream in a browser")
+  "A `helm' source for Twitch streams.")
+
+(defvar helm-source-twitch-top-streams
+  (helm-build-sync-source "Top Live Streams"
+    :header-name (lambda (src) (format "%s [%s]" src
+				       (or twitch-api-game-filter "All Games")))
+    :volatile t
+    :init (lambda () (helm-twitch--update-stream-actions))
+    :candidates #'helm-twitch--top-stream-candidates
     :action 'helm-twitch--stream-actions
     :persistent-help "Open this stream in a browser")
   "A `helm' source for Twitch streams.")
@@ -261,6 +295,7 @@ Twitch.tv API."
   "Search for live Twitch.tv streams with `helm'."
   (interactive)
   (let* ((sources '(helm-source-twitch
+		    helm-source-twitch-top-streams
 		    helm-source-twitch-channels
 		    helm-source-twitch-website))
 	 (sources (if twitch-api-oauth-token
