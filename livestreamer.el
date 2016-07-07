@@ -21,6 +21,8 @@
 
 ;;; Code:
 
+(require 'easymenu)
+
 (defcustom livestreamer-size "medium"
   "The stream size to request from Livestreamer."
   :type 'string)
@@ -123,6 +125,32 @@ output content."
         buffer-read-only t)
   (buffer-disable-undo)
   (hl-line-mode))
+
+(defun livestreamer-menu--add-sizes (default-menu)
+  "Append a submenu to the DEFAULT-MENU listing the available
+stream sizes."
+  (let ((sizes (livestreamer--get-stream-sizes)))
+    (cons
+     (cons "Resize stream (s)"
+	   (mapcar
+	    (lambda (size)
+	      (vector size `(livestreamer-resize-stream ,size)
+		      :style 'radio
+		      :selected `(equal ,size livestreamer-current-size)))
+	    sizes))
+     default-menu)))
+
+(easy-menu-define livestreamer-menu livestreamer-mode-map
+  "Pop-up menu for `livestreamer-mode'."
+  '("Livestreamer"
+    :filter livestreamer-menu--add-sizes
+    ["Close stream" livestreamer-kill-buffer
+     ;; Only enable closing if the process is running. Otherwise
+     ;; `livestreamer-kill-buffer' will kill the buffer.
+     :active (equal 'run (process-status livestreamer-process))]
+    ["Re-open stream" livestreamer-reopen-stream
+     ;; Only enable re-opening if the stream is not actually running.
+     :active (not (equal 'run (process-status livestreamer-process)))]))
 
 (defun livestreamer--filter (proc output)
   "Filter OUTPUT from Livestreamer process PROC for display in
