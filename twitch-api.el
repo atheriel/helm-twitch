@@ -45,12 +45,11 @@ To retrieve an OAuth token, check out `http://twitchapps.com/tmi/'."
   :group 'helm-twitch
   :type 'string)
 
-(defcustom twitch-api-client-id nil
+(defcustom twitch-api-client-id "d6hul5ut8dmqvl6tsa90254yzu8g612"
   "The Client ID for the application.
 
-This is not strictly necessary, but if you are making a large
-number of requests to the Twitch.tv API you may want to register
-for one. See `https://github.com/justintv/Twitch-API'."
+If you want to use your own, you can register for for one at
+`https://github.com/justintv/Twitch-API'."
   :group 'helm-twitch
   :type 'string)
 
