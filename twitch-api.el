@@ -28,7 +28,7 @@
 (defconst twitch-api-version "0.1"
   "Version of this package to advertise in the User-Agent string.")
 
-(defcustom twitch-api-game-filter "League of Legends"
+(defcustom twitch-api-game-filter nil
   "If specified, limits the search to those streaming this game."
   :version 0.1
   :type 'string)
