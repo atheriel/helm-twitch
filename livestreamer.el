@@ -23,21 +23,40 @@
 
 (require 'easymenu)
 
-(defcustom livestreamer-size "medium"
+(defgroup livestreamer nil
+  "A major mode for interacting with the livestreamer program."
+  :group 'external)
+
+(defcustom livestreamer-binary "livestreamer"
+  "The Livestreamer binary path."
+  :type 'string
+  :group 'livestreamer)
+
+(defcustom livestreamer-size "480p"
   "The stream size to request from Livestreamer."
-  :type 'string)
+  :type 'string
+  :group 'livestreamer)
+
+(defcustom livestreamer-player nil
+  "If non-nil, pass contents as the --player argument to
+Livestreamer."
+  :type 'string
+  :group 'livestreamer)
 
 (defcustom livestreamer-opts nil
   "Additional options to pass to Livestreamer."
-  :type 'string)
+  :type 'string
+  :group 'livestreamer)
 
 (defcustom livestreamer-header-fn #'livestreamer-default-header
   "The function used to set the header-line."
-  :type 'function)
+  :type 'function
+  :group 'livestreamer)
 
 (defcustom livestreamer-header-fn-args nil
   "Arguments to pass `livestreamer-header-fn'."
-  :type 'list)
+  :type 'list
+  :group 'livestreamer)
 
 (defvar-local livestreamer-process nil
   "The Livestreamer process for a `livestreamer-mode' buffer.")
@@ -120,7 +139,7 @@ output content."
 
 (define-derived-mode livestreamer-mode fundamental-mode "livestreamer"
   "A major mode for Livestreamer output."
-  :group 'helm-twitch
+  :group 'livestreamer
   (setq truncate-lines t
         buffer-read-only t)
   (buffer-disable-undo)
@@ -180,9 +199,13 @@ the buffer."
 
 (defun livestreamer-open (url &optional size opts no-erase msg)
   "Opens the stream at URL using the Livestreamer program."
-  (let* ((cmd  (executable-find "livestreamer"))
+  (let* ((cmd  (executable-find livestreamer-binary))
          (size (or size livestreamer-size))
          (opts (or opts livestreamer-opts ""))
+         (opts (if livestreamer-player
+                   (concat livestreamer-opts " --player \""
+                           livestreamer-player "\"")
+                 livestreamer-opts))
          (cmd  (when cmd (format "%s %s %s %s" cmd opts url size)))
          (buff (when cmd (get-buffer-create "*livestreamer*")))
          (msg  (or msg "# Opening stream...\n")))
