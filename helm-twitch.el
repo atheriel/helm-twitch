@@ -149,19 +149,23 @@ bound to HELM-PATTERN."
 (defun helm-twitch--update-stream-actions ()
   "Updates available `helm' actions for a stream."
   (setq helm-twitch--stream-actions
-        (append
-         `(("Open this stream in a browser" .
-            (lambda (stream) (browse-url (twitch-api-stream-url stream)))))
-         (when helm-twitch-enable-livestreamer-actions
-           `(("Open this stream in Livestreamer" .
-              helm-twitch--livestreamer-open)))
-         (when twitch-api-oauth-token
-           `(("Follow this stream's channel" .
-              (lambda (stream) (twitch-api-follow stream)))))
-         (when helm-twitch-enable-chat-actions
-           `(("Open Twitch chat for this channel" .
+         '(("Open this stream in a browser" .
+            (lambda (stream) (browse-url (twitch-api-stream-url stream))))))
+  (when helm-twitch-enable-livestreamer-actions
+    (push '("Open this stream in Livestreamer" . helm-twitch--livestreamer-open)
+          helm-twitch--stream-actions))
+  (when twitch-api-oauth-token
+    (push '("Follow this stream's channel" .
+            (lambda (stream)
+              (twitch-api-follow stream)
+              ;; Force a cache refresh.
+              (setq helm-twitch--following-cache nil)))
+          helm-twitch--stream-actions))
+  (when helm-twitch-enable-chat-actions
+    (push '("Open Twitch chat for this channel" .
               (lambda (stream)
-                (twitch-api-open-chat (twitch-api-stream-name stream)))))))))
+                (twitch-api-open-chat (twitch-api-stream-name stream))))
+          helm-twitch--stream-actions)))
 
 (defvar helm-twitch--top-streams-cache nil)
 (defvar helm-twitch--top-streams-cache-age nil)
@@ -202,6 +206,29 @@ bound to HELM-PATTERN."
       (setq helm-twitch--following-cache-age (current-time)
             helm-twitch--following-cache following)
       following)))
+
+(defvar helm-twitch--following-actions nil
+  "Available `helm' actions for a followed stream.")
+
+(defun helm-twitch--update-following-actions ()
+  "Updates available `helm' actions for a followed stream."
+  (setq helm-twitch--following-actions
+         '(("Open this stream in a browser" .
+            (lambda (stream) (browse-url (twitch-api-stream-url stream))))))
+  (when helm-twitch-enable-livestreamer-actions
+    (push '("Open this stream in Livestreamer" . helm-twitch--livestreamer-open)
+          helm-twitch--following-actions))
+  (push '("Unfollow this stream's channel" .
+          (lambda (stream)
+            (twitch-api-follow stream nil 'unfollow)
+            ;; Force a cache refresh.
+            (setq helm-twitch--following-cache nil)))
+        helm-twitch--following-actions)
+  (when helm-twitch-enable-chat-actions
+    (push '("Open Twitch chat for this channel" .
+              (lambda (stream)
+                (twitch-api-open-chat (twitch-api-stream-name stream))))
+          helm-twitch--following-actions)))
 
 (defun helm-twitch--channel-candidates ()
   "Retrieve and format a list of channels that match whatever is
@@ -255,15 +282,9 @@ Twitch.tv API."
 (defvar helm-source-twitch-following
   (helm-build-sync-source "Live Followed Streams"
     :volatile t
+    :init (lambda () (helm-twitch--update-following-actions))
     :candidates #'helm-twitch--following-candidates
-    :action (helm-make-actions
-             "Open this stream in a browser"
-             (lambda (stream) (browse-url (twitch-api-stream-url stream)))
-             "Open this stream in Livestreamer"
-             'helm-twitch--livestreamer-open
-             "Open Twitch chat for this channel"
-             (lambda (stream)
-               (twitch-api-open-chat (twitch-api-stream-name stream)))))
+    :action 'helm-twitch--following-actions)
   "A `helm' source for Twitch streams the user is following.")
 
 (defvar helm-source-twitch-channels
