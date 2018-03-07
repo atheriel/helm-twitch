@@ -53,6 +53,11 @@ If you want to use your own, you can register for for one at
   :group 'helm-twitch
   :type 'string)
 
+(defcustom twitch-api-curl-binary "curl"
+  "Location of the curl program."
+  :group 'helm-twitch
+  :type 'string)
+
 ;;;; Utilities
 
 (defun twitch-api--plist-to-url-params (plist)
@@ -105,50 +110,52 @@ For example:
 
     (twitch-api \"search/channels\" t :query \"flame\" :limit 15)
 "
-  (let* (;; TODO: Investigate using `url-request-data' instead.
-	 (params (twitch-api--plist-to-url-params plist))
-	 (api-url (concat "https://api.twitch.tv/kraken/" endpoint "?" params))
-	 ;; Decode into a plist, not the default alist.
-	 (json-object-type 'plist)
-	 ;; Use a descriptive User-Agent.
-	 (url-user-agent
-	  (format "User-Agent: twitch-api/%s URL/%s Emacs/%s\r\n"
-		  twitch-api-version url-version emacs-version))
-	 ;; Use version 3 of the API.
-	 (url-request-extra-headers
-	  '(("Accept" . "application/vnd.twitchtv.v3+json")))
-	 (url-request-extra-headers
+  (let* ((params (twitch-api--plist-to-url-params plist))
+         (api-url (concat "https://api.twitch.tv/kraken/" endpoint "?" params))
+         (curl-opts (list "--compressed" "--silent" "--location" "-D-"))
+         (json-object-type 'plist) ;; Decode into a plist.
+         (headers
+          ;; Use a descriptive User-Agent.
+          `(("User-Agent" . ,(format "twitch-api/%s Emacs/%s"
+                                     twitch-api-version emacs-version))
+            ;; Use version 3 of the API.
+            ("Accept" . "application/vnd.twitchtv.v3+json"))))
+    ;; Support setting the method lexically, as with url.el.
+    (when url-request-method
+      (push (format "-X%s" url-request-method) curl-opts))
 	  ;; Add the Authorization ID (if present).
-	  (append (when (and auth twitch-api-oauth-token)
-		    `(("Authorization" . ,(format "OAuth %s"
-						 twitch-api-oauth-token))))
-		  url-request-extra-headers))
-	 (url-request-extra-headers
+    (when (and auth twitch-api-oauth-token)
+      (push `("Authorization" . ,(format "OAuth %s" twitch-api-oauth-token))
+            headers))
 	  ;; Add the Client ID (if present).
-	  (append (when twitch-api-client-id
-		    `(("Client-ID" . ,twitch-api-client-id)))
-		  url-request-extra-headers))
-	 )
-    ;; (kill-new api-url) 			; For debugging.
-    (with-current-buffer
-      (url-retrieve-synchronously api-url t)
-      ;; The Twitch.tv API uses 204 for some successful DELETE
-      ;; requests. In those cases, we should be fine returning nil.
+	  (when twitch-api-client-id
+      (push `("Client-ID" . ,twitch-api-client-id) headers))
+    ;; Wrap up arguments to curl.
+    (dolist (header headers)
+      (cl-destructuring-bind (key . value) header
+        (push (format "-H%s: %s" key value) curl-opts)))
+    (setq curl-opts (nreverse (cons api-url curl-opts)))
+    (with-current-buffer (generate-new-buffer " *twitch-api*")
+      (let ((coding-system-for-read 'binary))
+        (apply #'call-process twitch-api-curl-binary nil t nil curl-opts))
+      (goto-char (point-min))
+      ;; Mimic url.el and store the status as a local variable.
+      (re-search-forward "^HTTP/[\\.0-9]+ \\([0-9]+\\)")
+      (setq-local url-http-response-status (string-to-int (match-string 1)))
       (unless (equal url-http-response-status 204)
-	;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
-	(set-buffer-multibyte t)
-	(goto-char (point-min))
-	(re-search-forward "^$")
-	(let ((result (json-read)))
-	  (when (plist-get result ':error)
-	    ;; According to the Twitch API documentation, the JSON object should
-	    ;; contain error information of this kind on failure:
-	    (let ((status (plist-get result ':status))
-		  (err    (plist-get result ':error))
-		  (errmsg (plist-get result ':message)))
-	      (user-error "Twitch.tv API request failed: %d (%s)%s"
-			  status err (when errmsg (concat " - " errmsg)))))
-	  result)))))
+        (re-search-forward "^\r\n") ;; End of headers.
+        ;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
+        (decode-coding-region (point) (point-max) 'utf-8)
+        (let ((result (json-read)))
+          (when (plist-get result ':error)
+            ;; According to the Twitch API documentation, the JSON object should
+            ;; contain error information of this kind on failure:
+            (let ((status (plist-get result ':status))
+                  (err    (plist-get result ':error))
+                  (errmsg (plist-get result ':message)))
+              (user-error "Twitch.tv API request failed: %d (%s)%s"
+                          status err (when errmsg (concat " - " errmsg)))))
+          result)))))
 
 ;;;###autoload
 (defun twitch-api-search-streams (search-term &optional limit)
