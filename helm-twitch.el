@@ -214,7 +214,11 @@ bound to HELM-PATTERN."
   "Format whatever is bound to HELM-PATTERN as a `helm' candidate
 for searching Twitch.tv directly."
   (list (cons (concat (propertize "[?]" 'face 'helm-twitch-prefix-face)
-                      (format " search for `%s' in a browser" helm-pattern))
+                      " search "
+                      (if (string= helm-pattern "")
+                          "Twitch.tv directly"
+                        (format "for `%s'" helm-pattern))
+                      " in a browser")
               helm-pattern)))
 
 (defun helm-twitch-flush-cache ()
@@ -280,12 +284,9 @@ Twitch.tv API."
 (defvar helm-source-twitch-website
   (helm-build-sync-source "Search Twitch.tv directly"
     :volatile t
-    ;; Require two letters (the smallest number there may be no results for),
-    ;; so that it does not need to show up in the initial buffer.
-    :requires-pattern 2
     :candidates #'helm-twitch--website-candidates
     :action (helm-make-actions
-             "Open the Twitch.tv website with this search term"
+             "Open the Twitch.tv website for this search"
              (lambda (query)
                (browse-url
                 (concat "http://www.twitch.tv/search?query=" query)))))
