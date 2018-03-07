@@ -168,7 +168,8 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	       (twitch-api-stream--create
 		:name    (plist-get channel ':name)
 		:viewers (plist-get stream ':viewers)
-		:status  (plist-get channel ':status)
+		:status  (replace-regexp-in-string "[
+]" "" (plist-get channel ':status))
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
@@ -203,7 +204,8 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	       (twitch-api-stream--create
 		:name    (plist-get channel ':name)
 		:viewers (plist-get stream ':viewers)
-		:status  (plist-get channel ':status)
+		:status  (replace-regexp-in-string "[
+]" "" (plist-get channel ':status))
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
