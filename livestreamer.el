@@ -197,6 +197,7 @@ the buffer."
                                         event)
                                 'face 'font-lock-comment-face))))))))
 
+;;;###autoload
 (defun livestreamer-open (url &optional size opts no-erase msg)
   "Opens the stream at URL using the Livestreamer program."
   (let* ((cmd  (executable-find livestreamer-binary))

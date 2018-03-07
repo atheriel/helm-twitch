@@ -291,6 +291,7 @@ Twitch.tv API."
                 (concat "http://www.twitch.tv/search?query=" query)))))
   "A `helm' source for searching Twitch's website directly.")
 
+;;;###autoload
 (defun helm-twitch ()
   "Search for live Twitch.tv streams with `helm'."
   (interactive)

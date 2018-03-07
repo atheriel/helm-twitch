@@ -93,6 +93,7 @@ browser."
 
 ;;;; API Wrappers
 
+;;;###autoload
 (defun twitch-api (endpoint auth &rest plist)
   "Query the Twitch API at ENDPOINT, returning the resulting JSON
 in a property list structure. When AUTH is non-nil, include the
@@ -149,6 +150,7 @@ For example:
 			  status err (when errmsg (concat " - " errmsg)))))
 	  result)))))
 
+;;;###autoload
 (defun twitch-api-search-streams (search-term &optional limit)
   "Retrieve a list of Twitch streams that match the SEARCH-TERM.
 
@@ -170,6 +172,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
+;;;###autoload
 (defun twitch-api-search-channels (search-term &optional limit)
   "Retrieve a list of Twitch channels that match the SEARCH-TERM.
 
@@ -184,6 +187,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 	      :game      (plist-get channel ':game)
 	      :url       (plist-get channel ':url)))))
 
+;;;###autoload
 (defun twitch-api-get-followed-streams (&optional limit)
   "Retrieve a list of Twitch streams that match the SEARCH-TERM.
 
@@ -203,6 +207,7 @@ If LIMIT is an integer, pass that along to `twitch-api'."
 		:game    (plist-get channel ':game)
 		:url     (plist-get channel ':url))))))
 
+;;;###autoload
 (defun twitch-api-follow (stream &optional quiet unfollow)
   "Adds STREAM to the following list for `twitch-api-username'.
 
@@ -223,6 +228,7 @@ list."
 
 ;;;; Twitch Chat Interaction
 
+;;;###autoload
 (defun twitch-api-open-chat (channel-name)
   "Invokes `erc' to open Twitch chat for a given CHANNEL-NAME."
   (interactive "sChannel: ")
