@@ -12,6 +12,13 @@ This package also contains a special `livestreamer-mode` that supports opening
 streams with [Livestreamer](http://docs.livestreamer.io/), for those of us who
 want to avoid playback in the browser itself.
 
+## Usage
+
+Calling `helm-twitch` interactively will display a Helm buffer containing the
+top live streams on Twitch.tv at present. Entering a pattern in the minibuffer
+will search for live streams and channels using the Twitch.tv API. The default
+action for these streams and channels is to open them in a browser.
+
 ## Customizing
 
 `helm-twitch` has very few customization parameters. The most immediately useful
@@ -60,6 +67,14 @@ explained above) to your custom `livestreamer-opts`. For example:
 ```
 
 See also [the Twitch.tv blog post](https://blog.twitch.tv/client-id-required-for-kraken-api-calls-afbb8e95f843).
+
+## Why Helm?
+
+Helm is not the only completion framework available for Emacs. Many users prefer
+the `ivy` ecosystem, and I am not opposed to porting the code for use within
+that ecosystem. However, `helm-twitch` makes extensive use of Helm's capacity to
+have multiple "sources" for a single completion, and this makes it difficult to
+imagine doing so. Contributions are very welcome!
 
 ## License
 
