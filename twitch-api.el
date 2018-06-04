@@ -141,7 +141,7 @@ For example:
       (goto-char (point-min))
       ;; Mimic url.el and store the status as a local variable.
       (re-search-forward "^HTTP/[\\.0-9]+ \\([0-9]+\\)")
-      (setq-local url-http-response-status (string-to-int (match-string 1)))
+      (setq-local url-http-response-status (string-to-number (match-string 1)))
       (unless (equal url-http-response-status 204)
         (re-search-forward "^\r\n") ;; End of headers.
         ;; Many Twitch streams have non-ASCII statuses in UTF-8 encoding.
