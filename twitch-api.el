@@ -24,6 +24,7 @@
 (require 'url)
 (require 'dash)
 (require 'json)
+(require 'tabulated-list)
 
 (defconst twitch-api-version "0.2"
   "Version of this package to advertise in the User-Agent string.")
@@ -252,6 +253,44 @@ list."
       (message "Set the variable `twitch-api-username' to connect to Twitch chat."))
     (when (not twitch-api-oauth-token)
       (message "Set the variable `twitch-api-oauth-token' to connect to Twitch chat."))))
+
+;;;; Top Streams Listing
+
+(define-derived-mode twitch-api-top-streams-mode tabulated-list-mode "Top Twitch.tv Streams"
+  "Major mode for `twitch-api-list-top-streams'."
+  (setq tabulated-list-format
+        [("Streamer" 17 t) ("Viewers" 7 twitch-api--sort-by-viewers)
+         ("Game" 20 t) ("Status" 0 nil)])
+  (setq tabulated-list-sort-key (cons "Viewers" nil))
+  (add-hook 'tabulated-list-revert-hook
+            'twitch-api--refresh-top-streams nil t))
+
+(defun twitch-api--refresh-top-streams ()
+  (setq tabulated-list-entries
+        (mapcar (lambda (elt)
+                  (list elt (vector (twitch-api-stream-name elt)
+                                    (int-to-string
+                                     (twitch-api-stream-viewers elt))
+                                    (twitch-api-stream-game elt)
+                                    (twitch-api-stream-status elt))))
+                (twitch-api-search-streams ""))))
+
+(defun twitch-api--sort-by-viewers (s1 s2)
+  (> (twitch-api-stream-viewers (car s1))
+     (twitch-api-stream-viewers (car s2))))
+
+;;;###autoload
+(defun twitch-api-list-top-streams ()
+  "Display a list of top streams on Twitch.tv."
+  (interactive)
+  (let ((buffer (get-buffer-create "*Top Twitch.tv Streams*")))
+    (with-current-buffer buffer
+      (twitch-api-top-streams-mode)
+      (twitch-api--refresh-top-streams)
+      (tabulated-list-init-header)
+      (tabulated-list-print))
+    (display-buffer buffer)
+    nil))
 
 (provide 'twitch-api)
 
