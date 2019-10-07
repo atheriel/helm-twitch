@@ -25,7 +25,7 @@
 (require 'dash)
 (require 'json)
 
-(defconst twitch-api-version "0.1"
+(defconst twitch-api-version "0.2"
   "Version of this package to advertise in the User-Agent string.")
 
 (defcustom twitch-api-game-filter nil
@@ -119,7 +119,7 @@ For example:
           `(("User-Agent" . ,(format "twitch-api/%s Emacs/%s"
                                      twitch-api-version emacs-version))
             ;; Use version 3 of the API.
-            ("Accept" . "application/vnd.twitchtv.v3+json"))))
+            ("Accept" . "application/vnd.twitchtv.v5+json"))))
     ;; Support setting the method lexically, as with url.el.
     (when url-request-method
       (push (format "-X%s" url-request-method) curl-opts))
